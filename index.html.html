@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>刷题</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f3f7;color:#222}
+#app{max-width:640px;margin:0 auto;min-height:100vh;padding-bottom:70px;background:#f2f3f7}
+.page{display:none;padding:14px}
+.page.active{display:block}
+h1{font-size:20px;margin:6px 0 14px}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;background:#3b7ddd;color:#fff;font-size:16px;margin-bottom:10px;cursor:pointer}
+.btn.sec{background:#e9edf5;color:#33517a}
+.btn.warn{background:#e5533d}
+.btn:active{opacity:.8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 .btn{margin-bottom:0}
+.qbox{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.qmeta{font-size:12px;color:#8a93a5;margin-bottom:8px}
+.qtext{font-size:17px;line-height:1.6;margin-bottom:14px}
+.opt{padding:13px 14px;border:1.5px solid #dfe4ee;border-radius:10px;margin-bottom:10px;font-size:16px;line-height:1.5;cursor:pointer;background:#fff;display:flex;gap:8px}
+.opt .lab{font-weight:700;color:#5b6579}
+.opt.sel{border-color:#3b7ddd;background:#eef4ff}
+.opt.right{border-color:#28a745;background:#eaf9ef}
+.opt.wrong{border-color:#e5533d;background:#fdeeeb}
+.result{padding:12px;border-radius:10px;font-size:15px;margin-top:5px;font-weight:600}
+.result.ok{background:#eaf9ef;color:#1c7c37}
+.result.no{background:#fdeeeb;color:#c2341f}
+.progress{font-size:13px;color:#8a93a5;margin-bottom:10px}
+#tab{position:fixed;bottom:0;left:0;right:0;max-width:640px;margin:0 auto;display:flex;background:#fff;border-top:1px solid #e6e9f0;z-index:50}
+#tab div{flex:1;text-align:center;padding:9px 0 7px;font-size:11px;color:#8a93a5;cursor:pointer}
+#tab div.on{color:#3b7ddd}
+#tab div .ic{font-size:18px;line-height:1.2}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f7;font-size:15px}
+.row:last-child{border-bottom:none}
+.muted{color:#8a93a5;font-size:13px}
+.empty{text-align:center;color:#9aa3b5;padding:40px 0;font-size:15px}
+.back{font-size:14px;color:#3b7ddd;margin-bottom:10px;display:inline-block;cursor:pointer}
+input[type=number]{width:100%;padding:12px;border:1.5px solid #dfe4ee;border-radius:10px;font-size:16px;margin-bottom:10px}
+.list-item{padding:12px 0;border-bottom:1px solid #f0f2f7;font-size:15px;line-height:1.5}
+.list-item:last-child{border-bottom:none}
+.small{font-size:13px;color:#8a93a5;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div class="page active" id="p-home">
+  <h1>📚 刷题</h1>
+  <div class="card">
+    <div class="row"><span>题库总数</span><span id="h-total">-</span></div>
+    <div class="row"><span>已做</span><span id="h-done">-</span></div>
+    <div class="row"><span>正确率</span><span id="h-rate">-</span></div>
+  </div>
+  <button class="btn" onclick="startMode('order')">顺序刷题</button>
+  <button class="btn" onclick="startMode('random')">随机刷题</button>
+  <div class="grid2">
+    <button class="btn sec" onclick="go('p-wrong')">错题本</button>
+    <button class="btn sec" onclick="go('p-fav')">收藏</button>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <button class="btn sec" onclick="go('p-exam')">模拟考试</button>
+    <button class="btn sec" onclick="go('p-stat')">统计/备份</button>
+  </div>
+</div>
+
+<div class="page" id="p-quiz">
+  <span class="back" onclick="go('p-home')">‹ 返回首页</span>
+  <div class="progress" id="q-prog"></div>
+  <div class="qbox">
+    <div class="qmeta" id="q-meta"></div>
+    <div class="qtext" id="q-text"></div>
+    <div id="q-opts"></div>
+    <div id="q-res"></div>
+  </div>
+  <div class="grid2">
+    <button class="btn sec" onclick="prevQ()">上一题</button>
+    <button class="btn" onclick="nextQ()">下一题</button>
+  </div>
+  <button class="btn sec" onclick="toggleFav()" id="q-fav">☆ 收藏本题</button>
+</div>
+
+<div class="page" id="p-wrong">
+  <span class="back" onclick="go('p-home')">‹ 返回首页</span>
+  <h1>❌ 错题本</h1>
+  <button class="btn" onclick="startWrong()">重刷错题</button>
+  <div class="card" id="w-list"></div>
+</div>
+
+<div class="page" id="p-fav">
+  <span class="back" onclick="go('p-home')">‹ 返回首页</span>
+  <h1>⭐ 收藏</h1>
+  <button class="btn" onclick="startFav()">刷收藏题</button>
+  <div class="card" id="f-list"></div>
+</div>
+
+<div class="page" id="p-exam">
+  <span class="back" onclick="go('p-home')">‹ 返回首页</span>
+  <h1>📝 模拟考试</h1>
+  <div class="card">
+    <div class="muted" style="margin-bottom:8px">题目数量</div>
+    <input type="number" id="ex-count" value="20" min="1">
+    <div class="muted" style="margin-bottom:8px">限时（分钟，0=不限时）</div>
+    <input type="number" id="ex-time" value="20" min="0">
+    <button class="btn" onclick="startExam()">开始考试</button>
+  </div>
+</div>
+
+<div class="page" id="p-examrun">
+  <div class="progress" id="e-prog"></div>
+  <div class="qbox">
+    <div class="qtext" id="e-text"></div>
+    <div id="e-opts"></div>
+  </div>
+  <div class="grid2">
+    <button class="btn sec" onclick="ePrev()">上一题</button>
+    <button class="btn" onclick="eNext()">下一题</button>
+  </div>
+  <button class="btn warn" onclick="submitExam()">交卷</button>
+</div>
+
+<div class="page" id="p-examres">
+  <span class="back" onclick="go('p-home')">‹ 返回首页</span>
+  <h1>📊 考试结果</h1>
+  <div class="card">
+    <div class="row"><span>得分</span><span id="r-score" style="font-weight:700;font-size:18px"></span></div>
+    <div class="row"><span>正确/总题</span><span id="r-cnt"></span></div>
+    <div class="row"><span>用时</span><span id="r-time"></span></div>
+  </div>
+  <div class="card" id="r-list"></div>
+  <button class="btn" onclick="go('p-home')">返回首页</button>
+</div>
+
+<div class="page" id="p-stat">
+  <span class="back" onclick="go('p-home')">‹ 返回首页</span>
+  <h1>📈 统计 / 备份</h1>
+  <div class="card">
+    <div class="row"><span>累计作答</span><span id="s-ans">-</span></div>
+    <div class="row"><span>答对</span><span id="s-ok">-</span></div>
+    <div class="row"><span>正确率</span><span id="s-rate">-</span></div>
+    <div class="row"><span>错题数</span><span id="s-wrong">-</span></div>
+    <div class="row"><span>收藏数</span><span id="s-fav">-</span></div>
+  </div>
+  <button class="btn sec" onclick="exportData()">导出备份</button>
+  <button class="btn sec" onclick="document.getElementById('imp').click()">导入备份</button>
+  <input type="file" id="imp" accept=".json,.txt" style="display:none" onchange="importData(event)">
+  <button class="btn warn" onclick="clearAll()">清空所有记录</button>
+</div>
+
+</div>
+
+<div id="tab">
+  <div class="on" data-t="p-home" onclick="go('p-home')"><div class="ic">🏠</div>首页</div>
+  <div data-t="p-wrong" onclick="go('p-wrong')"><div class="ic">❌</div>错题</div>
+  <div data-t="p-fav" onclick="go('p-fav')"><div class="ic">⭐</div>收藏</div>
+  <div data-t="p-stat" onclick="go('p-stat')"><div class="ic">📈</div>统计</div>
+</div>
+
+<script>
+/* ==================== 题库（共 534 题） ==================== */
+const QUESTIONS = [
+{ id:1, type:"判断", chapter:"判断题题库", q:"对于代理上海黄金交易所个人贵金属交易业务，客户贵金属交易账户内被冻结库存不能进行提货申请。", options:["正确","错误"], answer:[1] },
+{ id:2, type:"判断", chapter:"判断题题库", q:"发起代理上海黄金交易所个人贵金属解约请求后，客户能做交易及出入金。", options:["正确","错误"], answer:[1] },
+{ id:3, type:"判断", chapter:"判断题题库", q:"注销代理上海黄金交易所个人贵金属业务，只是取消贵金属交易编码与客户资金账户的一一对应关系，并不注销贵金属交易编码。", options:["正确","错误"], answer:[0] },
+{ id:4, type:"判断", chapter:"判断题题库", q:"办理代理银团贷款放款时，客服经理应审查委托贷款业务凭证上银行审核意见、信贷合同专用章、信贷部门经办人、负责人签字、有权审批人签字齐全。", options:["正确","错误"], answer:[0] },
+{ id:5, type:"判断", chapter:"判断题题库", q:"代理银团贷款还款完成后若次日发现错账，且已进行本息分配，需先完成代理银团本息分配冲正，再进行代理银团还款冲正。", options:["正确","错误"], answer:[0] },
+{ id:6, type:"判断", chapter:"判断题题库", q:"经办机构应当根据代收代付业务系统操作要求为客户建立对应的代收或代付业务电子合约，一个合约仅能用于一项代收或代付业务，不得多个委托单位共用一个。", options:["正确","错误"], answer:[0] },
+{ id:7, type:"判断", chapter:"判断题题库", q:"代收和代付业务应当严密内部控制，不得垫付资金，但可以代客操作。", options:["正确","错误"], answer:[1] },
+{ id:8, type:"判断", chapter:"判断题题库", q:"不得为自身或受益所有人洗钱和恐怖融资风险等级为“高风险类”的客户办理单位结算卡签约业务。", options:["正确","错误"], answer:[0] },
+{ id:9, type:"判断", chapter:"判断题题库", q:"单位结算卡销卡无法提供持卡人证件原件的，可出具持卡人证件原件无法提供的情况说明并加盖公章。", options:["正确","错误"], answer:[0] },
+{ id:10, type:"判断", chapter:"判断题题库", q:"单位结算卡现金取款款可以他人代为办理，1万（不含）以下需提供代办人身份证件原件，1万（含）以上需提供代理人及持卡人证件。", options:["正确","错误"], answer:[1] },
+{ id:11, type:"判断", chapter:"判断题题库", q:"单位结算卡单笔无卡存在人民币单笔1万元（含）以上，参照个人借记卡相关规定处理。", options:["正确","错误"], answer:[0] },
+{ id:12, type:"判断", chapter:"判断题题库", q:"单位结算卡可以绑定多级账簿进行开卡。", options:["正确","错误"], answer:[0] },
+{ id:13, type:"判断", chapter:"判断题题库", q:"单位结算卡口头挂失必须在开卡网点办理。", options:["正确","错误"], answer:[1] },
+{ id:14, type:"判断", chapter:"判断题题库", q:"单位结算卡密码挂失可以在全国任意网点进行，解除密码挂失必须在原挂失网点进行。", options:["正确","错误"], answer:[0] },
+{ id:15, type:"判断", chapter:"判断题题库", q:"单位结算卡手机安全认证码的签约和修改仅限本人办理，他人不可以代办。", options:["正确","错误"], answer:[0] },
+{ id:16, type:"判断", chapter:"判断题题库", q:"单位结算卡现金存取款业务可在综合网点的个人柜面办理（含周末、节假日）。", options:["正确","错误"], answer:[0] },
+{ id:17, type:"判断", chapter:"判断题题库", q:"单位结算卡销卡可以在全国任意网点办理。", options:["正确","错误"], answer:[1] },
+{ id:18, type:"判断", chapter:"判断题题库", q:"单位结算卡存取款，客户免填单的，请客户在《个人业务申请》或柜外清上签字。", options:["正确","错误"], answer:[0] },
+{ id:19, type:"判断", chapter:"判断题题库", q:"单位结算卡销卡时，客服经理在提交交易前需确保账户印鉴核验通过。", options:["正确","错误"], answer:[0] },
+{ id:20, type:"判断", chapter:"判断题题库", q:"中国农业银行第二代支付系统采用“一点接入，两点清算”的模式。", options:["正确","错误"], answer:[1] },
+{ id:21, type:"判断", chapter:"判断题题库", q:"小额支付系统实行7*24小时不间断运行，系统工作日为自然日，资金清算日为大额支付系统的工作日。", options:["正确","错误"], answer:[0] },
+{ id:22, type:"判断", chapter:"判断题题库", q:"大额支付汇兑业务和小额支付普通业务采用录入复核模式，同一笔业务的录入与确认由不同柜员完成。", options:["正确","错误"], answer:[0] },
+{ id:23, type:"判断", chapter:"判断题题库", q:"电子凭证是BoEing系统柜面业务综合化改造后，系统自动生成的业务凭证及客服经理补充扫描的原始凭证，在BoEing系统中，记账凭证、原始凭证、重要凭证影像等信息有机地组合成一个完整的电子凭证库。", options:["正确","错误"], answer:[0] },
+{ id:24, type:"判断", chapter:"判断题题库", q:"打印机卡纸或机具故障等情况，造成电子化回单生成成功但打印失败时，通过“补打电子化回单”功能，补打客服经理本人七日内交易产生的客户回单。", options:["正确","错误"], answer:[0] },
+{ id:25, type:"判断", chapter:"判断题题库", q:"客户办理销户，除按规定出具相关证明文件外，还必须申请将该账户在所有已加载的支付密码器中删除。", options:["正确","错误"], answer:[0] },
+{ id:26, type:"判断", chapter:"判断题题库", q:"客户签发支付密码正确的支付凭证，但签章与预留银行印鉴不符的，营业机构可以付款。", options:["正确","错误"], answer:[1] },
+{ id:27, type:"判断", chapter:"判断题题库", q:"单位客户约定使用支付密码，核验支付密码不符，但签章与预留银行印章相符的，营业机构可以付款。", options:["正确","错误"], answer:[1] },
+{ id:28, type:"判断", chapter:"判断题题库", q:"营业机构可根据客户要求，将已在支付密码系统登记过的支付密码器置为注销状态。注销后该支付密码器在电子支付密码系统中可以再使用。", options:["正确","错误"], answer:[1] },
+{ id:29, type:"判断", chapter:"判断题题库", q:"在向已签约使用支付密码的客户出售支票时，营业机构应在支票票面加注含有“加验密码”的字样。", options:["正确","错误"], answer:[0] },
+{ id:30, type:"判断", chapter:"判断题题库", q:"支付密码器注销后，营业机构不得对该支付密码器进行除删除账号外的任何操作", options:["正确","错误"], answer:[0] },
+{ id:31, type:"判断", chapter:"判断题题库", q:"某对公客户因资金结算需要，急需解除其未对账账户止付，并向营业网点出具加盖预留印鉴的《未对账账户解止付申请书》和经办人身份证件原件。经办客服经理张三发现该账户仍未对账，故予以拒绝。", options:["正确","错误"], answer:[1] },
+{ id:32, type:"判断", chapter:"判断题题库", q:"各行应通过智速账户平台办理单位结算账户开户业务，BoEing开户交易仅作为应急使用。", options:["正确","错误"], answer:[0] },
+{ id:33, type:"判断", chapter:"判断题题库", q:"根据本行制裁合规管理相关规定禁止受理的对公客户，经办人员应不予受理转账汇款业务，并进行可疑交易报告。", options:["正确","错误"], answer:[0] },
+{ id:34, type:"判断", chapter:"判断题题库", q:"对公非活期存款提/销户业务中，资金去向为非我行单位结算账户的，仅需提供经办人的有效身份证件原件和加盖预留印鉴的存款证实书原件。", options:["正确","错误"], answer:[1] },
+{ id:35, type:"判断", chapter:"判断题题库", q:"如果该企业已注销，可提供政府有关部门注销证明，单位公章已经收回销毁或遗失的，提供单位公章收缴证明或报案回执等相关证明材料，《撤销单位银行结算账户申请书》上无需加盖单位公章", options:["正确","错误"], answer:[0] },
+{ id:36, type:"判断", chapter:"判断题题库", q:"本地开户场景下，如为远程视频核实开户意愿，审核客户经理在尽职调查表的确认结果，客户经理必须且只能提供现场核实照片。", options:["正确","错误"], answer:[1] },
+{ id:37, type:"判断", chapter:"判断题题库", q:"当接到有权机关协助查询、冻结、扣划通知书后，应严格保密并及时办理，不得拖延推诿，并立刻通知存款人或者第三方。", options:["正确","错误"], answer:[1] },
+{ id:38, type:"判断", chapter:"判断题题库", q:"电话查证作为一项银行内部控制风险的手段，对业务事项有疑问的可进行电话查证。", options:["正确","错误"], answer:[0] },
+{ id:39, type:"判断", chapter:"判断题题库", q:"电子凭证的对公非活期存款销户或部提时，须先换成纸质凭证。", options:["正确","错误"], answer:[0] },
+{ id:40, type:"判断", chapter:"判断题题库", q:"对公非活期存款销户时，利息清单上如果有多笔不同利率的利息，不必逐条打印明细。", options:["正确","错误"], answer:[1] },
+{ id:41, type:"判断", chapter:"判断题题库", q:"对公账户续冻期限从原冻结到期日开始计算。", options:["正确","错误"], answer:[0] },
+{ id:42, type:"判断", chapter:"判断题题库", q:"对公账户续冻时不改变其原冻结开始日期，但改变原冻结轮候顺序。", options:["正确","错误"], answer:[1] },
+{ id:43, type:"判断", chapter:"判断题题库", q:"非企业银行结算账户，存款人开立单位银行结算账户，自正式开立之日起3个工作日后，方可办理付款业务。", options:["正确","错误"], answer:[0] },
+{ id:44, type:"判断", chapter:"判断题题库", q:"核准类账户销户人民银行审批后，如账户余额为零、无待作废的重要空白凭证且无影响账户销户的合约或产品，可不要求客户到银行柜台办理。", options:["正确","错误"], answer:[0] },
+{ id:45, type:"判断", chapter:"判断题题库", q:"基本存款账户是存款人因办理日常转账结算和现金收付需要开立的银行结算账户", options:["正确","错误"], answer:[0] },
+{ id:46, type:"判断", chapter:"判断题题库", q:"客户签约“同利丰”可在任意网点柜面办理。", options:["正确","错误"], answer:[1] },
+{ id:47, type:"判断", chapter:"判断题题库", q:"某企业财务人员赵某前来我行柜面办理对联系联系人信息修改业务，客服经理张三根据BoEing系统留存的法定代表人联系方式进行电话核实。", options:["正确","错误"], answer:[0] },
+{ id:48, type:"判断", chapter:"判断题题库", q:"某企业财务人员赵某前来我行柜面办理纸质对账账单地址修改业务，客服经理张三也必须根据财务人员提供的法定代表人联系方式强制进行电话核实。", options:["正确","错误"], answer:[1] },
+{ id:49, type:"判断", chapter:"判断题题库", q:"企业开立、变更、撤销银行存款账户仍然需要实行核准制。", options:["正确","错误"], answer:[1] },
+{ id:50, type:"判断", chapter:"判断题题库", q:"人民币结算账户收支业务，跨网点交易发现错账时，当日和隔日可以抹账，也可以冲正。", options:["正确","错误"], answer:[1] },
+{ id:51, type:"判断", chapter:"判断题题库", q:"人民银行未核准或备案不成功的，如账户余额为零，网点可经内勤行长审批，主动进行销户。如果已签约相关合约或产品，可一并解约。", options:["正确","错误"], answer:[0] },
+{ id:52, type:"判断", chapter:"判断题题库", q:"通过“21078对公活期账户销户预检查”交易，查询有无影响账户销户的合约或产品，如有需按规定解约后方可销户。", options:["正确","错误"], answer:[0] },
+{ id:53, type:"判断", chapter:"判断题题库", q:"一般存款账户可以办理现金缴存，但不得办理现金支取。", options:["正确","错误"], answer:[0] },
+{ id:54, type:"判断", chapter:"判断题题库", q:"异地建筑施工及安装单位开立的临时存款账户名称可以为建筑施工与安装单位名称后加项目部名称，但临时存款账户的预留签章应与临时存款账户名称一致。", options:["正确","错误"], answer:[0] },
+{ id:55, type:"判断", chapter:"判断题题库", q:"银行非基本存款账户的开立必须以基本存款账户的开立为前提，必须凭基本存款账户编号或基本存款账户开户许可证办理开户手续，但临时机构和注册验资需要开立的临时存款账户及合格境外机构投资者申请开立的QFII专用存款账户除外。", options:["正确","错误"], answer:[0] },
+{ id:56, type:"判断", chapter:"判断题题库", q:"有权机关逾期未办理续冻、解冻手续的，冻结截止日为节假日的，在节假日后的第一个工作日自动解冻（即冻结截止日顺延）；冻结截止日非节假日的，到期日终后自动解冻。", options:["正确","错误"], answer:[0] },
+{ id:57, type:"判断", chapter:"判断题题库", q:"预留银行签章中公章或财务专用章的名称任何情况下均不可使用简称，账户名称应与其保持一致。", options:["正确","错误"], answer:[1] },
+{ id:58, type:"判断", chapter:"判断题题库", q:"在对公冲正账务同时，系统自动调整账户计息积数。", options:["正确","错误"], answer:[0] },
+{ id:59, type:"判断", chapter:"判断题题库", q:"账单名称与客户名称完全一致的，账单名称随客户名称变化而变化；账单名称与客户名称不一致时，账单名称不随客户名称变化而变化。", options:["正确","错误"], answer:[0] },
+{ id:60, type:"判断", chapter:"判断题题库", q:"账户平移登记、撤销情况可通过“40046平移账户按账号查询”和“40047平移账户机构查询”交易进行查询。", options:["正确","错误"], answer:[0] },
+{ id:61, type:"判断", chapter:"判断题题库", q:"对公通知存款通知支取前，取款人按照存款品种提前1天或7天通知拟取款营业网点，并提交《通知存款取款通知书》。", options:["正确","错误"], answer:[0] },
+{ id:62, type:"判断", chapter:"判断题题库", q:"企业（包括境内依法设立的企业法人和非法人企业）申请开立人民币单位银行结算账户（包括基本存款账户、一般存款账户、临时存款账户和专用存款账户），需审核客户企业经营地址核实情况。", options:["正确","错误"], answer:[0] },
+{ id:63, type:"判断", chapter:"判断题题库", q:"柜面代发工资时，经办机构可以垫付资金。", options:["正确","错误"], answer:[1] },
+{ id:64, type:"判断", chapter:"判断题题库", q:"因委托单位提供的数据有误等原因造成入账差错的，经办机构可协助委托单位进行差错处理，但不得未经客户授权许可直接扣划其个人结算账户的资金。", options:["正确","错误"], answer:[0] },
+{ id:65, type:"判断", chapter:"判断题题库", q:"仅政府类客户代发工资时可不加密代发，且须经一级分行审批。", options:["正确","错误"], answer:[0] },
+{ id:66, type:"判断", chapter:"判断题题库", q:"一个财政部门为多地预算单位发放工资的，可由主办网点接收所有代发款项，再划转至其他承办网点发放。", options:["正确","错误"], answer:[0] },
+{ id:67, type:"判断", chapter:"判断题题库", q:"在协助有权机关办理完毕冻结、扣划存款手续后，根据业务需要可以通知存款单位或个人。", options:["正确","错误"], answer:[0] },
+{ id:68, type:"判断", chapter:"判断题题库", q:"办理有权机关查冻扣业务因特殊情况不能提供工作证或执行公务证时（如工作证、执行公务证过期正在办理中等），执行人员应提供所属单位证明。", options:["正确","错误"], answer:[0] },
+{ id:69, type:"判断", chapter:"判断题题库", q:"协助查询、冻结、解冻、扣划通知书等法律文件，异地有权机关可以委托本地有权机关代为送达。", options:["正确","错误"], answer:[0] },
+{ id:70, type:"判断", chapter:"判断题题库", q:"按金额冻结对公结算账户时，冻结金额可大于、等于或小于存款余额。", options:["正确","错误"], answer:[0] },
+{ id:71, type:"判断", chapter:"判断题题库", q:"办理有权机关查冻扣业务，续冻无次数限制，且执行冻结的机构和渠道应与原冻结一致。", options:["正确","错误"], answer:[0] },
+{ id:72, type:"判断", chapter:"判断题题库", q:"对已被冻结的涉案存款、汇款等财产，司法机关不得重复冻结，但可以轮候冻结", options:["正确","错误"], answer:[0] },
+{ id:73, type:"判断", chapter:"判断题题库", q:"因IFAR过账需要，每月月底和月底前一天，不能做对公账户平移操作，因此“平移日期”不能输入月底两日。", options:["正确","错误"], answer:[0] },
+{ id:74, type:"判断", chapter:"判断题题库", q:"对公整整、通知相同期存款产品之间可以互相结转,不同存期产品之间的不能结转。", options:["正确","错误"], answer:[0] },
+{ id:75, type:"判断", chapter:"判断题题库", q:"已对账签约客户变更账户名称或法定代表人（单位负责人）的，无需重新签订《银企对账服务协议》。", options:["正确","错误"], answer:[0] },
+{ id:76, type:"判断", chapter:"判断题题库", q:"同一客户的不同种类账户，都可以在同一份对账单中进行对账。", options:["正确","错误"], answer:[0] },
+{ id:77, type:"判断", chapter:"判断题题库", q:"对于客户已按法定代表人或单位负责人有效身份证件原件流程办理开户的情况，联动签约集中对账服务无需提供《对账业务客户身份识别调查申请审批表》", options:["正确","错误"], answer:[0] },
+{ id:78, type:"判断", chapter:"判断题题库", q:"对公理财业务认购申购成功后，系统自动对投资者账户内认购申购资金实时冻结，实时扣减可售额度。", options:["正确","错误"], answer:[0] },
+{ id:79, type:"判断", chapter:"判断题题库", q:"每个结算套餐都有销售期，只有在销售期内才允许账户与结算套餐进行签约。", options:["正确","错误"], answer:[0] },
+{ id:80, type:"判断", chapter:"判断题题库", q:"客户提前解约结算套餐时，经营行应根据结算套餐使用时间和结算套餐包含的产品费率折扣等要素，合理试算退费金额。", options:["正确","错误"], answer:[0] },
+{ id:81, type:"判断", chapter:"判断题题库", q:"自助可循环贷款是指本行在统一授信额度内，为企业客户核定一个可撤销的最高贷款额度，在额度有效期内企业客户可通过营业柜台、网上银行等渠道自主、循环使用贷款的贷款产品。", options:["正确","错误"], answer:[0] },
+{ id:82, type:"判断", chapter:"判断题题库", q:"贷款发放成功后生成电子凭证，按系统提示扫描一份《贷款发放通知单》作附件，一份由客服经理签字（章）后交信贷部门。", options:["正确","错误"], answer:[0] },
+{ id:83, type:"判断", chapter:"判断题题库", q:"贷款放款后当天支持抹账，抹账后可以重新放款。", options:["正确","错误"], answer:[0] },
+{ id:84, type:"判断", chapter:"判断题题库", q:"不规则贷款还款计划变更或提前还款时，需由C4系统发送新的还款计划。", options:["正确","错误"], answer:[0] },
+{ id:85, type:"判断", chapter:"判断题题库", q:"贷款停息时，系统自动计算出上一个结息日至停息日期间的利息并计入待入账记账", options:["正确","错误"], answer:[0] },
+{ id:86, type:"判断", chapter:"判断题题库", q:"对公贷款类不可以使用现金方式放款", options:["正确","错误"], answer:[0] },
+{ id:87, type:"判断", chapter:"判断题题库", q:"对公贷款部分提前还款时，需先归还已产生账单的本金；贷款全部提前结清时，需先归还已产生的所有账单。", options:["正确","错误"], answer:[0] },
+{ id:88, type:"判断", chapter:"判断题题库", q:"对公贷款到期后，不可以办理展期。", options:["正确","错误"], answer:[0] },
+{ id:89, type:"判断", chapter:"判断题题库", q:"贷款全部提前结清时，需先归还已产生的所有账单。", options:["正确","错误"], answer:[0] },
+{ id:90, type:"判断", chapter:"判断题题库", q:"对公理财产品质押冻结不会自动解冻。", options:["正确","错误"], answer:[0] },
+{ id:91, type:"判断", chapter:"判断题题库", q:"发放委托贷款坚持“先存后贷，先拨后用”的原则，银行可垫付资金并免收手续费", options:["正确","错误"], answer:[1] },
+{ id:92, type:"判断", chapter:"判断题题库", q:"委托贷款不纳入资产额度管理，不占用贷款额度。", options:["正确","错误"], answer:[0] },
+{ id:93, type:"判断", chapter:"判断题题库", q:"委托贷款在放款前必须先建立委托子合约完成资金委托。", options:["正确","错误"], answer:[0] },
+{ id:94, type:"判断", chapter:"判断题题库", q:"小微企业自助可循环贷款合同要素调整由C3发起后才能在BoEing系统进行相应操作", options:["正确","错误"], answer:[0] },
+{ id:95, type:"判断", chapter:"判断题题库", q:"贷款核销批复通知书“处置方案概要”中的核销本金应不小于BoEing系统中的贷款本金余额。", options:["正确","错误"], answer:[0] },
+{ id:96, type:"判断", chapter:"判断题题库", q:"只有尚未发放的委托贷款才能进行委托资金追加和退还。", options:["正确","错误"], answer:[0] },
+{ id:97, type:"判断", chapter:"判断题题库", q:"贷款账户按还款账户的对账周期对账，无还款账户的按季对账。", options:["正确","错误"], answer:[0] },
+{ id:98, type:"判断", chapter:"判断题题库", q:"单位银行账户对账，是指本行与单位客户之间就单位银行账户（不含单位银行卡账户、单位存折类账户及同业账户）的余额和明细发生额进行的核对。", options:["正确","错误"], answer:[0] },
+{ id:99, type:"判断", chapter:"判断题题库", q:"定期、通知、保证金和贷款账户对账率应达到100%。", options:["正确","错误"], answer:[0] },
+{ id:100, type:"判断", chapter:"判断题题库", q:"对账单收发和对账不符处理工作不可以派发至营业机构。", options:["正确","错误"], answer:[0] },
+{ id:101, type:"判断", chapter:"判断题题库", q:"对账印鉴是指对账双方约定的、客户加盖在对账回执上的确认印鉴。", options:["正确","错误"], answer:[0] },
+{ id:102, type:"判断", chapter:"判断题题库", q:"同业账户对账，是指本行与金融同业之间就同业账户的余额和明细发生额进行的核对。", options:["正确","错误"], answer:[0] },
+{ id:103, type:"判断", chapter:"判断题题库", q:"账户无论余额大小、明细发生额多少，本行都要进行对账。", options:["正确","错误"], answer:[0] },
+{ id:104, type:"判断", chapter:"判断题题库", q:"重点账户对账率最低应达到99%，普通账户对账率最低应达到90%。", options:["正确","错误"], answer:[0] },
+{ id:105, type:"判断", chapter:"判断题题库", q:"电子现金是基于借记应用的小额支付实现，是电子化现金且设定限额，不设置支付密码，不计息不挂失。", options:["正确","错误"], answer:[0] },
+{ id:106, type:"判断", chapter:"判断题题库", q:"复合电子现金卡须实名开立。", options:["正确","错误"], answer:[0] },
+{ id:107, type:"判断", chapter:"判断题题库", q:"电子现金是基于借记应用的小额支付实现，是电子化现金且设定限额，不设置支付密码，资金不计息不挂失。", options:["正确","错误"], answer:[0] },
+{ id:108, type:"判断", chapter:"判断题题库", q:"电子现金业务不可以代理办理。", options:["正确","错误"], answer:[0] },
+{ id:109, type:"判断", chapter:"判断题题库", q:"主账户复合电子现金卡包括带子现金借记卡和复合电子现金借记卡。", options:["正确","错误"], answer:[0] },
+{ id:110, type:"判断", chapter:"判断题题库", q:"个人联名存款账户允许代理办理，全部联名成员仅一人亲自到场办理。", options:["正确","错误"], answer:[1] },
+{ id:111, type:"判断", chapter:"判断题题库", q:"转账撤销是指普通、次日转账的约定时间内，向存款人提供的撤销转账服务。", options:["正确","错误"], answer:[0] },
+{ id:112, type:"判断", chapter:"判断题题库", q:"借记卡零余额集中销卡账户激活和睡眠账户激活交易，卡、折遗失时，先办理激活，再办理书面挂失补卡、折。", options:["正确","错误"], answer:[0] },
+{ id:113, type:"判断", chapter:"判断题题库", q:"当客户ID因命中“买卖银行卡和支付账户、冒名开户、为违法犯罪活动转移赃款提供便利的个人或相关组织者”和“涉案账户开户人”等重点关注名单而被管控时，不得删除ID。", options:["正确","错误"], answer:[0] },
+{ id:114, type:"判断", chapter:"判断题题库", q:"异地有权机关不可以委托本地有权机关代为送达协助查询、冻结、解冻、扣划通知书等法律文件。", options:["正确","错误"], answer:[1] },
+{ id:115, type:"判断", chapter:"判断题题库", q:"外币资金在境内转账时，只能是客户本人账户间或与其近亲属账户间的资金划转", options:["正确","错误"], answer:[0] },
+{ id:116, type:"判断", chapter:"判断题题库", q:"“20234银行卡书面挂失销户”交易整合了挂失和销户操作，目前不提供“仅挂失”功能。", options:["正确","错误"], answer:[0] },
+{ id:117, type:"判断", chapter:"判断题题库", q:"“20246批量挂失销户”交易目前只支持“取现卡”。", options:["正确","错误"], answer:[0] },
+{ id:118, type:"判断", chapter:"判断题题库", q:"Ⅱ类户和Ⅰ类户绑定后，办理Ⅱ类户销户时，其与Ⅰ类户的绑定关系自动解除。", options:["正确","错误"], answer:[0] },
+{ id:119, type:"判断", chapter:"判断题题库", q:"Ⅱ类户和Ⅰ类户绑定后，办理重归户时，须先解除绑定合约后方可进行。", options:["正确","错误"], answer:[0] },
+{ id:120, type:"判断", chapter:"判断题题库", q:"当接到有权机关协助查询、冻结、扣划通知书后，应严格保密并及时办理，不得拖延推诿，严禁向存款人或者第三方通风报信、帮助隐匿或者转移存款。", options:["正确","错误"], answer:[0] },
+{ id:121, type:"判断", chapter:"判断题题库", q:"协助有权机关查询业务，关于执法人员的工作证件审查要点有：是否由执法单位签发；是否属于执法人员本人的；是否超过有效期；照片是否清晰；公章钢印是否清楚。", options:["正确","错误"], answer:[0] },
+{ id:122, type:"判断", chapter:"判断题题库", q:"协助有权机关查询业务，关于执法人员的工作证件审查，必要时可以通过电话方式与有权机关联系，以进一步核实执法人员身份。", options:["正确","错误"], answer:[0] },
+{ id:123, type:"判断", chapter:"判断题题库", q:"冲账时应坚持先存款再销存款补正或先取款补正再取款冲销的原则。", options:["正确","错误"], answer:[0] },
+{ id:124, type:"判断", chapter:"判断题题库", q:"存单销户凭印鉴支取时，审查是否本网点开户存单，不允许跨所销户。", options:["正确","错误"], answer:[0] },
+{ id:125, type:"判断", chapter:"判断题题库", q:"存单销户业务，支控方式中含“凭证件”的都允许代理。", options:["正确","错误"], answer:[1] },
+{ id:126, type:"判断", chapter:"判断题题库", q:"涉及客户变更姓名、国籍、身份证件或身份证明文件的种类、号码的应开展客户身份重新识别。", options:["正确","错误"], answer:[0] },
+{ id:127, type:"判断", chapter:"判断题题库", q:"单折批量/代理开户激活时，无需客户输入新设密码。", options:["正确","错误"], answer:[1] },
+{ id:128, type:"判断", chapter:"判断题题库", q:"单折批量/代理开户激活可在一级分行辖内办理。", options:["正确","错误"], answer:[0] },
+{ id:129, type:"判断", chapter:"判断题题库", q:"当日错账通过抹账处理，隔日错账通过冲账处理。", options:["正确","错误"], answer:[0] },
+{ id:130, type:"判断", chapter:"判断题题库", q:"当账户开通个人网银、掌上银行、电话银行时，重归后渠道合约自动解除。", options:["正确","错误"], answer:[0] },
+{ id:131, type:"判断", chapter:"判断题题库", q:"当账户已签约为资金归集主账户后，还可以签约为其他归集主账户的归集子账户", options:["正确","错误"], answer:[1] },
+{ id:132, type:"判断", chapter:"判断题题库", q:"定期一本通批量销户转账账户，资金处理方式仅支持转本人借记卡。", options:["正确","错误"], answer:[0] },
+{ id:133, type:"判断", chapter:"判断题题库", q:"如客户主动提出撤回《隐私政策（个人版）》，可通过删除客户号的方式实现。", options:["正确","错误"], answer:[0] },
+{ id:134, type:"判断", chapter:"判断题题库", q:"对于代理办理单笔5万元以下现金取款业务，须在系统中登记代理人证件信息；对于代理办理单笔50万元以下的转账取款，须提供代理人有效身份证件原件，并在系统中登记代理人信息。", options:["正确","错误"], answer:[0] },
+{ id:135, type:"判断", chapter:"判断题题库", q:"对于借记卡和准贷记卡磁道锁定的，解除磁道锁定的方式为修改密码，修改密码可在农行任一网点办理。", options:["正确","错误"], answer:[0] },
+{ id:136, type:"判断", chapter:"判断题题库", q:"对于密码解锁连续3次密码输入错误的，提示客户进行密码挂失处理，不得再次做密码解锁。", options:["正确","错误"], answer:[0] },
+{ id:137, type:"判断", chapter:"判断题题库", q:"在柜面受理个人业务时，对于未实现系统电子化填单的情况，需填写纸质《中国农业银行个人客户准入（重新识别）尽职调查信息表》。", options:["正确","错误"], answer:[0] },
+{ id:138, type:"判断", chapter:"判断题题库", q:"法院办理有权机关查冻扣业务，由一名执行人员到营业机构或专门受理部门现场办理。", options:["正确","错误"], answer:[1] },
+{ id:139, type:"判断", chapter:"判断题题库", q:"凡操作正确并记账成功，且系统打印内容与客户填写内容一致的业务，严禁应客户的要求做抹账处理，此时若客户要求取消业务的，客服经理应予以拒绝，并向客户做出解释和要求客户主动联系收款人办理退款手续。", options:["正确","错误"], answer:[0] },
+{ id:140, type:"判断", chapter:"判断题题库", q:"个人客户办理联名存款账户开户时，全体联名人都要签订《个人联名存款账户管理协议》（每位联名人及营业网点各一份）。", options:["正确","错误"], answer:[0] },
+{ id:141, type:"判断", chapter:"判断题题库", q:"挂失业务允许代理，但挂失后续处理业务必须客户本人亲自办理。", options:["正确","错误"], answer:[0] },
+{ id:142, type:"判断", chapter:"判断题题库", q:"正常状态借记卡的零存整取、定活两便子账户销户不允许跨地市办理。", options:["正确","错误"], answer:[0] },
+{ id:143, type:"判断", chapter:"判断题题库", q:"已绑定的Ⅰ、Ⅱ类户之间转账金额（仅限人民币币种）不受Ⅱ类户日、年累计限额控制。", options:["正确","错误"], answer:[0] },
+{ id:144, type:"判断", chapter:"判断题题库", q:"客服经理办理现金业务操作必须在有效监控和客户视线以内，做到当面点准，一笔一清、一户一清。", options:["正确","错误"], answer:[0] },
+{ id:145, type:"判断", chapter:"判断题题库", q:"客服经理张三为客户赵六办理开立个人结算账户，赵六未通过人脸识别，张三应做到换人复核。", options:["正确","错误"], answer:[0] },
+{ id:146, type:"判断", chapter:"判断题题库", q:"柜面应建立以人工识别为主，鉴别仪、联网核查、人脸识别或指纹识别等技术手段为辅的身份识别方法。", options:["正确","错误"], answer:[0] },
+{ id:147, type:"判断", chapter:"判断题题库", q:"公安机关对重大、复杂案件，经设区的市一级机关负责人批准，冻结期限可以不超过3年。", options:["正确","错误"], answer:[1] },
+{ id:148, type:"判断", chapter:"判断题题库", q:"借记卡伪冒账户销户指对他人冒用、盗用或伪造客户本人身份证件，以客户名义申请开立的借记卡账户（含电子子账户）进行的销户处理。", options:["正确","错误"], answer:[0] },
+{ id:149, type:"判断", chapter:"判断题题库", q:"借记卡激活前卡片遗失的，如客户要求换卡，应办理书面挂失补发；如客户要求销卡，应办理书面挂失销户。", options:["正确","错误"], answer:[0] },
+{ id:150, type:"判断", chapter:"判断题题库", q:"居住在中国境内不满18周岁（16周岁以上能提供劳动收入证明的除外）的中国公民，办理开户、存取款、挂失、查询等业务，应由监护人代理办理，视同本人办理，办理时应提供监护人有效身份证件和监护证明（户口簿、出生证明等），并留存其复印件或影印件。", options:["正确","错误"], answer:[0] },
+{ id:151, type:"判断", chapter:"判断题题库", q:"借记卡激活交易，同号换卡时密码挂失状态下，可授权通过，激活成功后系统提示联动密码重置交易", options:["正确","错误"], answer:[0] },
+{ id:152, type:"判断", chapter:"判断题题库", q:"借记卡子账户开户，开卡行与交易行不同网点时，子账户归属于开卡行。", options:["正确","错误"], answer:[1] },
+{ id:153, type:"判断", chapter:"判断题题库", q:"客户本人申请的转账撤销，需输入支付密码，已经密码挂失的，可不输入支付密", options:["正确","错误"], answer:[0] },
+{ id:154, type:"判断", chapter:"判断题题库", q:"客户的住所地与经常居住地不一致的，登记客户的住所地。", options:["正确","错误"], answer:[1] },
+{ id:155, type:"判断", chapter:"判断题题库", q:"客户凭密码进行交易时，如一日内在各种交易渠道借记卡连续3次输入密码错误、存折连续5次输入密码错误，系统自动锁定密码。", options:["正确","错误"], answer:[0] },
+{ id:156, type:"判断", chapter:"判断题题库", q:"某人民法院来行办理个人存款的续冻，经内勤行长审批签字后，客服经理执行个人账户续冻交易。", options:["正确","错误"], answer:[0] },
+{ id:157, type:"判断", chapter:"判断题题库", q:"支控方式中含“凭证件”取款时应要求客户提供有效身份证件，不允许代理。", options:["正确","错误"], answer:[0] },
+{ id:158, type:"判断", chapter:"判断题题库", q:"客户信息保护，是指在业务办理过程中，各级行、各部门员工应严格遵守相关法律法规、监管要求，按照《中国农业银行客户信息保护管理办法》、《中国农业银行个人客户信息保护实施细则》等行内规章制度的要求，收集、存储、使用、加工、传输、提供、公开、删除个人客户信息。", options:["正确","错误"], answer:[0] },
+{ id:159, type:"判断", chapter:"判断题题库", q:"客户姓名中包含生僻字，我行系统无法正确显示的，应拒绝为客户办理业务。", options:["正确","错误"], answer:[1] },
+{ id:160, type:"判断", chapter:"判断题题库", q:"客户张三已有一张我行Ⅰ类借记卡作为工资卡，现客户希望在我行购买理财，但不愿使用其已有的Ⅰ类卡，我行可以为客户开立一张Ⅱ类借记卡用于购买投资理财", options:["正确","错误"], answer:[0] },
+{ id:161, type:"判断", chapter:"判断题题库", q:"客户赵六持2018年开立的存单前往柜面办理代理理财业务，存单支控方式为“凭证件”。柜面人员审核无误后可为其办理。", options:["正确","错误"], answer:[1] },
+{ id:162, type:"判断", chapter:"判断题题库", q:"客户赵六来我行投诉其借记卡状态异常，需要我行为其核实处理，客服经理使用“个人重点关注账户管理”交易查询其借记卡状态为“异常交易账户”，审核客户身份证件和银行介质无误后，客服经理直接为其进行核实。", options:["正确","错误"], answer:[1] },
+{ id:163, type:"判断", chapter:"判断题题库", q:"联网核查电子流水记录不能作为业务依据代替纸质核查凭证。", options:["正确","错误"], answer:[1] },
+{ id:164, type:"判断", chapter:"判断题题库", q:"联网核查和人脸识别是客户身份识别最重要的辅助手段，客服经理和授权人员可以仅依据联网核查和人脸识别结果处理业务。", options:["正确","错误"], answer:[1] },
+{ id:165, type:"判断", chapter:"判断题题库", q:"轮候冻结指对于同一个存款账户或同一笔存款资金，在被其他有权机关冻结后，允许第二、第三等若干个后续有权机关排队等候冻结。", options:["正确","错误"], answer:[0] },
+{ id:166, type:"判断", chapter:"判断题题库", q:"抹账交易可以应客户要求使用。", options:["正确","错误"], answer:[1] },
+{ id:167, type:"判断", chapter:"判断题题库", q:"排除终端设备等客观情况，客服经理为客户本人或代理人进行联网核查时，应开展人脸识别操作。", options:["正确","错误"], answer:[0] },
+{ id:168, type:"判断", chapter:"判断题题库", q:"签约双利丰个人通知存款后，客户在进行人民币消费，或签约个贷正常自动还款、基金定投等后，若卡内活期主账户余额不足，在消费时或上述业务的还款日、定投日系统自动将差额部分，从最近一次存入的人民币“双利丰”通知存款子账户依次转入活期主账户，直至满足消费金额或还款金额、定投金额。", options:["正确","错误"], answer:[0] },
+{ id:169, type:"判断", chapter:"判断题题库", q:"人民币支持一天和七天通知，外币只支持七天通知。", options:["正确","错误"], answer:[0] },
+{ id:170, type:"判断", chapter:"判断题题库", q:"如借记卡磁道锁定密码修改不成功的，可选择“20214借记卡换卡”交易，进行换卡操作。", options:["正确","错误"], answer:[0] },
+{ id:171, type:"判断", chapter:"判断题题库", q:"如联网核查系统已留存影像件的，可以不再留存。", options:["正确","错误"], answer:[0] },
+{ id:172, type:"判断", chapter:"判断题题库", q:"双利丰通知存款支取后子账户余额可以低于最低转存金额。", options:["正确","错误"], answer:[1] },
+{ id:173, type:"判断", chapter:"判断题题库", q:"同一客户开立Ⅱ类户、Ⅲ类户的数量分别不得超过1个。", options:["正确","错误"], answer:[1] },
+{ id:174, type:"判断", chapter:"判断题题库", q:"外国公民的有效证件为护照或者外国人永久居留证（外国边民，按照边贸结算的有关规定办理）。", options:["正确","错误"], answer:[0] },
+{ id:175, type:"判断", chapter:"判断题题库", q:"有无卡/折存款方式办理的业务，客户无需填写《个人业务申请》。", options:["正确","错误"], answer:[1] },
+{ id:176, type:"判断", chapter:"判断题题库", q:"无卡存款、无折存款时，应在代理人信息登记处输入汇款人或代理人的证件信息及联系方式。", options:["正确","错误"], answer:[0] },
+{ id:177, type:"判断", chapter:"判断题题库", q:"现金存款时，应遵循“先收款、后记账”原则。", options:["正确","错误"], answer:[0] },
+{ id:178, type:"判断", chapter:"判断题题库", q:"现金取款时，应遵循“先记账、后付款”原则。", options:["正确","错误"], answer:[0] },
+{ id:179, type:"判断", chapter:"判断题题库", q:"协助查询存款手续办理完毕后，除非有权机关明确允许，否则严禁通知存款人；协助冻结或扣划手续办理完毕后，根据业务实际需要可告知其账户被冻结情况。", options:["正确","错误"], answer:[0] },
+{ id:180, type:"判断", chapter:"判断题题库", q:"续冻时即改变其原冻结开始时间，又改变了原冻结轮候顺序。", options:["正确","错误"], answer:[1] },
+{ id:181, type:"判断", chapter:"判断题题库", q:"业务要求应留存客户居民身份证纸质复印件的，不能用电子影像代替。", options:["正确","错误"], answer:[0] },
+{ id:182, type:"判断", chapter:"判断题题库", q:"已绑定的Ⅰ、Ⅱ类借记卡卡号同号、异号换卡时，绑定关系自动更新、保持不变。", options:["正确","错误"], answer:[0] },
+{ id:183, type:"判断", chapter:"判断题题库", q:"退役军人卡激活时，持卡人需凭退役军人专用卡、本人居民身份证、落户介绍信（或退役后重新落户的居民户口簿）到安置地营业网点办理退役军人专用卡激活业务。", options:["正确","错误"], answer:[0] },
+{ id:184, type:"判断", chapter:"判断题题库", q:"因居民身份证号码15位正常升18位，只需提供新居民身份证。", options:["正确","错误"], answer:[0] },
+{ id:185, type:"判断", chapter:"判断题题库", q:"原则上能通过组合交易一笔完成的业务，不得拆分为多笔过渡交易办理。", options:["正确","错误"], answer:[0] },
+{ id:186, type:"判断", chapter:"判断题题库", q:"执行个人账户强制扣划交易时，需内勤行长审批，但无需内勤行长现场监督从扣划交易到扣划资金划转到指定账户交易的后续处理全过程。", options:["正确","错误"], answer:[1] },
+{ id:187, type:"判断", chapter:"判断题题库", q:"办理止付账户激活和借记卡零余额集中销户激活交易时，如密码错误可由主管授权通过。", options:["正确","错误"], answer:[0] },
+{ id:188, type:"判断", chapter:"判断题题库", q:"单折批量/代理开户激活交易，无需输入原密码。", options:["正确","错误"], answer:[0] },
+{ id:189, type:"判断", chapter:"判断题题库", q:"批量或代理开卡激活时，无需输入原密码。", options:["正确","错误"], answer:[0] },
+{ id:190, type:"判断", chapter:"判断题题库", q:"只有定期一本通账户才可做全账户冻结。", options:["正确","错误"], answer:[0] },
+{ id:191, type:"判断", chapter:"判断题题库", q:"客户赵六持有当日正好到期的人民币整存整取一年期定期存单(本金40万,利率2.0%)前往开户网点办理转账销户存入本人银行卡业务,客户赵六必须带身份证原件才能办理。", options:["正确","错误"], answer:[1] },
+{ id:192, type:"判断", chapter:"判断题题库", q:"对公客户合约管理用于第一次委托本行批量开立个人账户的单位客户，需建立对公客户批量交易属性合约，包括新建客户信息、批量开户属性合约。", options:["正确","错误"], answer:[0] },
+{ id:193, type:"判断", chapter:"判断题题库", q:"批量新建客户信息文件、批量开户文件中的证件类型必须为同一证件类型。", options:["正确","错误"], answer:[0] },
+{ id:194, type:"判断", chapter:"判断题题库", q:"批量开户单位无法提供单位负责人身份证原件的，可提供单位负责人身份证复印件，但须客户经理双人上门核实单位批量开户真实意愿，并在单位负责人身份证复印件上签字确认。", options:["正确","错误"], answer:[0] },
+{ id:195, type:"判断", chapter:"判断题题库", q:"对于在本行无单位账户的对公客户，网点不可为其办理批量业务。", options:["正确","错误"], answer:[1] },
+{ id:196, type:"判断", chapter:"判断题题库", q:"客户张三来到某农行网点，要求代理李四支取港币现金5000元整，客户出示了双人身份证及李四的银行卡，客服经理王五以两人非近亲属关系予以拒绝，王五的做法是符合我行规定的。", options:["正确","错误"], answer:[1] },
+{ id:197, type:"判断", chapter:"判断题题库", q:"同一客户外币现金存入当日累计等值1万美元以下（含），凭有效身份证件在本行直接办理。", options:["正确","错误"], answer:[0] },
+{ id:198, type:"判断", chapter:"判断题题库", q:"客户张三来到某农行网点，要求代理李四支取港币现金5000元整，客户出示了双人身份证及李四的银行卡，客服经理王五以客户未提供授权书予以拒绝，王五的做法不符合我行规定的。", options:["正确","错误"], answer:[1] },
+{ id:199, type:"判断", chapter:"判断题题库", q:"办理个人外币现金存取业务时，BoEing系统自动联动外汇管理局个人外汇系统，如返回的客户分类状态为“预关注客户”或“关注客户”，且告知状态为“未告知”，客服经理需打印《个人外汇业务风险提示函》或《个人外汇业务“关注名单”告知书》，交予客户阅知。", options:["正确","错误"], answer:[0] },
+{ id:200, type:"判断", chapter:"判断题题库", q:"客户张三代理其未成年小孩来农行某网点办理金融社保卡，提供了本人身份证和其小孩的户口簿，客服经理王五在柜面操作联网核查，对客户张三和其小孩均进行行内核查。王五的操作符合我行规定。", options:["正确","错误"], answer:[1] },
+{ id:201, type:"判断", chapter:"判断题题库", q:"CCS等级为高风险的所有境外客户均不得办理一次性现金结售汇业务。", options:["正确","错误"], answer:[1] },
+{ id:202, type:"判断", chapter:"判断题题库", q:"表外科目核算或有事项以及需要备忘或控制的业务事项，主要包括或有事项类科目、备查登记类科目及其他。", options:["正确","错误"], answer:[0] },
+{ id:203, type:"判断", chapter:"判断题题库", q:"表内科目包括资产类、负债类、所有者权益类、资产负债共同类及损益类科目。", options:["正确","错误"], answer:[0] },
+{ id:204, type:"判断", chapter:"判断题题库", q:"网点接到客户提交的冠字号码查询申请时，查询申请超过申请时效的，仍可提供冠字号码查询服务。", options:["正确","错误"], answer:[0] },
+{ id:205, type:"判断", chapter:"判断题题库", q:"冠字号码查询信息系统经办人员与业务主管可以为同一人。", options:["正确","错误"], answer:[1] },
+{ id:206, type:"判断", chapter:"判断题题库", q:"《冠字号码查询申请表》应按人民银行要求至少保管5年，并按年装订。", options:["正确","错误"], answer:[0] },
+{ id:207, type:"判断", chapter:"判断题题库", q:"柜员认证系统采用统一管理、分散应用的业务管理模式。", options:["正确","错误"], answer:[0] },
+{ id:208, type:"判断", chapter:"判断题题库", q:"客服经理李四因临时有事需外出，将现金、贵金属、重要空白凭证、有价单证、印章等物品全部入柜员现金箱保管，便离开了网点。", options:["正确","错误"], answer:[1] },
+{ id:209, type:"判断", chapter:"判断题题库", q:"营业机构设置3个（含）以上营业窗口同时办理现金业务的营业机构须指定1至2名客服经理专职履行主出纳职责。", options:["正确","错误"], answer:[0] },
+{ id:210, type:"判断", chapter:"判断题题库", q:"客服经理因岗位调整等原因不再办理现金业务的，应报告管辖行运营管理部门及时删除其柜员现金箱。", options:["正确","错误"], answer:[0] },
+{ id:211, type:"判断", chapter:"判断题题库", q:"柜员现金箱是指客服经理在BoEing系统中办理现金业务时开设的系统现金箱所对应的现金实物保管箱。", options:["正确","错误"], answer:[0] },
+{ id:212, type:"判断", chapter:"判断题题库", q:"可以为不办理现金业务的客服经理建立柜员现金箱。", options:["正确","错误"], answer:[1] },
+{ id:213, type:"判断", chapter:"判断题题库", q:"内勤行长根据业务需要及季节性现金收付情况，可临时性适当调整柜员现金箱限", options:["正确","错误"], answer:[0] },
+{ id:214, type:"判断", chapter:"判断题题库", q:"设置2个（含）以上营业窗口同时办理现金业务的营业机构须指定1至2名客服经理专职履行主出纳职责。", options:["正确","错误"], answer:[1] },
+{ id:215, type:"判断", chapter:"判断题题库", q:"责任人进行查库时，应对柜员现金箱进行账实核对。其中，对于贵金属无需检查", options:["正确","错误"], answer:[1] },
+{ id:216, type:"判断", chapter:"判断题题库", q:"静态授权是指总行运营管理部根据交易的风险性和重要性统一确定静态授权级别，全行营业机构执行统一标准。", options:["正确","错误"], answer:[0] },
+{ id:217, type:"判断", chapter:"判断题题库", q:"BoEing用户是指在BoEing中，按照分工权限分为人工用户、系统用户两类。", options:["正确","错误"], answer:[1] },
+{ id:218, type:"判断", chapter:"判断题题库", q:"动态授权是指总行运营管理部根据交易的风险性和重要性统一确定动态授权级别，全行营业机构执行统一标准。", options:["正确","错误"], answer:[0] },
+{ id:219, type:"判断", chapter:"判断题题库", q:"如因员工离岗、岗位调动等原因不再操作BoEing，一级分行应及时组织和监督相关机构删除该用户。", options:["正确","错误"], answer:[0] },
+{ id:220, type:"判断", chapter:"判断题题库", q:"人工用户是指为自助机具调用BoEing完成业务处理而设置的用户。", options:["正确","错误"], answer:[1] },
+{ id:221, type:"判断", chapter:"判断题题库", q:"对外营业机构申请终止营业并拆并时，须取得监管部门同意其终止营业的批准文件或在监管部门的备案文件。", options:["正确","错误"], answer:[0] },
+{ id:222, type:"判断", chapter:"判断题题库", q:"BoEing机构拆并，是指营业机构因业务经营的需要，在完成各类审批和申报手续后，将BoEing中的全部或部分业务划转至另一个营业机构。", options:["正确","错误"], answer:[0] },
+{ id:223, type:"判断", chapter:"判断题题库", q:"业务审批是指在柜面办理风险性高、专业性要求高的业务前，需经内勤行长（含履行内勤行长职责的代班主管）审批同意方可办理的事前风险控制措施。", options:["正确","错误"], answer:[0] },
+{ id:224, type:"判断", chapter:"判断题题库", q:"现场审核是指对采用远程授权方式的高风险业务，内勤行长或其他现场授权人员审核业务的真实性并以现场或移动方式进行确认。", options:["正确","错误"], answer:[0] },
+{ id:225, type:"判断", chapter:"判断题题库", q:"对于需业务审批的交易，内勤行长若是该交易的现场授权、移动授权的授权人或现场审核的审核人，可视同已履行业务审批职责。", options:["正确","错误"], answer:[0] },
+{ id:226, type:"判断", chapter:"判断题题库", q:"审批是指在柜面办理风险较大、专业性要求较高的业务时，授权人员对业务要素进行审核确认，是柜面业务风险的事后控制措施。", options:["正确","错误"], answer:[1] },
+{ id:227, type:"判断", chapter:"判断题题库", q:"现场授权是指授权人员在对外营业机构中的客服经理和承担综合操作类职责的客服经理、内设机构中的普通客服经理终端设备前，现场完成审核确认的授权方式", options:["正确","错误"], answer:[0] },
+{ id:228, type:"判断", chapter:"判断题题库", q:"对于99999科目挂账和因操作失误发生的隔日账务差错，须按照红字冲正、蓝字补记的差错更正方法进行调整。", options:["正确","错误"], answer:[0] },
+{ id:229, type:"判断", chapter:"判断题题库", q:"网点过渡账户资金须在当日销账完毕，不得随意挂账。", options:["正确","错误"], answer:[0] },
+{ id:230, type:"判断", chapter:"判断题题库", q:"CCS等级为1的客户不允许开户。", options:["正确","错误"], answer:[0] },
+{ id:231, type:"判断", chapter:"判断题题库", q:"为确保职责明晰，在同一会计年度内，同一人工用户号只能由一个人使用。", options:["正确","错误"], answer:[0] },
+{ id:232, type:"判断", chapter:"判断题题库", q:"业务审批是指在柜面办理风险性高、专业性要求高的业务前，需经网点主任审批同意方可办理的事前风险控制措施。", options:["正确","错误"], answer:[1] },
+{ id:233, type:"判断", chapter:"判断题题库", q:"BoEing用户号可以一人多号、一号多人。", options:["正确","错误"], answer:[1] },
+{ id:234, type:"判断", chapter:"判断题题库", q:"角色是BoEing控制机构、用户和设备能够操作交易范围的集合。", options:["正确","错误"], answer:[0] },
+{ id:235, type:"判断", chapter:"判断题题库", q:"营业机构、清分机构应采用机具、人工相结合的清点方式，并以机具清点为主、人工清点为辅。", options:["正确","错误"], answer:[0] },
+{ id:236, type:"判断", chapter:"判断题题库", q:"营业机构、清分机构应指定专人负责假币实物管理，建立假币收缴代管登记机制，确保登记簿与实物相符。", options:["正确","错误"], answer:[0] },
+{ id:237, type:"判断", chapter:"判断题题库", q:"被收缴人对营业机构收缴具体行政行为有异议的，收缴人应告知被收缴人可在收到《假币收缴凭证》之日起2日内向人民银行申请行政复议，或者依法提起行政诉讼", options:["正确","错误"], answer:[1] },
+{ id:238, type:"判断", chapter:"判断题题库", q:"基金委托撤销业务当日有效，只受理整笔委托撤销，不能部分撤销，不能做反向交易。", options:["正确","错误"], answer:[0] },
+{ id:239, type:"判断", chapter:"判断题题库", q:"客服经理可通过基金非交易过户，对持有司法判决书的客户，按照决议要求将指定TA账户持有的基金转移给另一个客户的TA账户。", options:["正确","错误"], answer:[0] },
+{ id:240, type:"判断", chapter:"判断题题库", q:"营业网点每日需查询前一交易日的《基金定投失败明细表》、《基金交易失败明细表》，系统自动电子化报表，不再随传票装订。", options:["正确","错误"], answer:[0] },
+{ id:241, type:"判断", chapter:"判断题题库", q:"客户购买基金时，当系统提示客户的风险承受能力与基金产品风险等级不匹配时，客服经理应向客户做好充分风险提示。", options:["正确","错误"], answer:[0] },
+{ id:242, type:"判断", chapter:"判断题题库", q:"基金交易成功后允许撤销，如为委托撤销，即由客户申请发起，需要校验客户密", options:["正确","错误"], answer:[0] },
+{ id:243, type:"判断", chapter:"判断题题库", q:"个人客户办理基金查询打印，需出示客户有效身份证件，允许代理。", options:["正确","错误"], answer:[1] },
+{ id:244, type:"判断", chapter:"判断题题库", q:"客户基金服务签约账户为借记卡的，基金赎回可在全国范围内办理。", options:["正确","错误"], answer:[0] },
+{ id:245, type:"判断", chapter:"判断题题库", q:"对于同一只货币基金，不能同时签约自动理财和定投业务（含智能定投）。", options:["正确","错误"], answer:[0] },
+{ id:246, type:"判断", chapter:"判断题题库", q:"客户首次购买某TA机构的基金产品时，应同这些TA机构逐一签约。", options:["正确","错误"], answer:[0] },
+{ id:247, type:"判断", chapter:"判断题题库", q:"客户购买应在网点销售专区办理，按照“双录”要求完成录音录像。", options:["正确","错误"], answer:[0] },
+{ id:248, type:"判断", chapter:"判断题题库", q:"首次购买基金专户，客户应进行风险测评，同银行签订基金服务合约。同时根据资管新规有关要求，购买基金专户的客户需完成合格投资者认定。", options:["正确","错误"], answer:[0] },
+{ id:249, type:"判断", chapter:"判断题题库", q:"远程授权系统的不同用户之间必须严格分离，同一时间不得相互兼任。", options:["正确","错误"], answer:[0] },
+{ id:250, type:"判断", chapter:"判断题题库", q:"远程授权业务中，凭证提示库是系统提供的辅助功能，其主要作用是提示柜面人员业务所需的主要电子影像资料。", options:["正确","错误"], answer:[0] },
+{ id:251, type:"判断", chapter:"判断题题库", q:"对于授权成功的授权业务，客服经理应根据操作规程和系统提示完成后续操作；对于被拒绝的授权业务，可直接再次提交已存在差错的授权申请。", options:["正确","错误"], answer:[1] },
+{ id:252, type:"判断", chapter:"判断题题库", q:"客服经理在拍摄客户影像时应注意影像摄像头和终端屏幕的合理摆放位置；在拍摄业务凭证时应摆放端正，拍摄包括该笔业务所有需审核要素的凭证正反面，以保证业务的准确性和完整性，提升规范化服务水平。", options:["正确","错误"], answer:[0] },
+{ id:253, type:"判断", chapter:"判断题题库", q:"托管费固定金额改变的，变更后的托管费金额大于等于已缴托管费，托管费率改变的，按照“实际发生额×当时费率”对托管费进行累加。", options:["正确","错误"], answer:[0] },
+{ id:254, type:"判断", chapter:"判断题题库", q:"结算印章分发必须坚持双人分发、双人领取，确保印章领用安全。", options:["正确","错误"], answer:[0] },
+{ id:255, type:"判断", chapter:"判断题题库", q:"已启用结算印章的印鉴卡，未集中保管的，日间应入柜员现金箱或保险箱（柜）保管，日终或非营业时间应随柜员现金箱（包）入金库或保险箱（柜）保管。", options:["正确","错误"], answer:[0] },
+{ id:256, type:"判断", chapter:"判断题题库", q:"印鉴卡与结算印章同时制作、分发、清理和销毁，应由专人保管。", options:["正确","错误"], answer:[0] },
+{ id:257, type:"判断", chapter:"判断题题库", q:"做借记卡应急控制交易时，可按客户要求进行不收不付控制。", options:["正确","错误"], answer:[1] },
+{ id:258, type:"判断", chapter:"判断题题库", q:"长期应急控制不能自动解除。", options:["正确","错误"], answer:[0] },
+{ id:259, type:"判断", chapter:"判断题题库", q:"Ⅰ类借记卡不可以降级为Ⅱ类借记卡。", options:["正确","错误"], answer:[1] },
+{ id:260, type:"判断", chapter:"判断题题库", q:"极高风险等级指经有权机关认定具有较为明确的洗钱事实或洗钱嫌疑的客户，以及不再符合本行准入政策的客户。", options:["正确","错误"], answer:[0] },
+{ id:261, type:"判断", chapter:"判断题题库", q:"根据客户要求打印出的客户信息，如客户未将打印件带走，应放入柜台抽屉保管", options:["正确","错误"], answer:[1] },
+{ id:262, type:"判断", chapter:"判断题题库", q:"个人信息原则上不得公开披露，除根据法律法规规定或监管要求需公开披露个人客户信息，或事先获得客户明示同意或授权的情况。", options:["正确","错误"], answer:[0] },
+{ id:263, type:"判断", chapter:"判断题题库", q:"对于无法读机的二代身份证或其他身份证明文件，手工输入身份证件信息，结合核查结果，判断是否需要客户提供辅助身份证明材料，以进一步核实确认客户身份。", options:["正确","错误"], answer:[0] },
+{ id:264, type:"判断", chapter:"判断题题库", q:"联网核查支持的客户身份证件种类只包括二代身份证，不包括临时身份证、户口", options:["正确","错误"], answer:[1] },
+{ id:265, type:"判断", chapter:"判断题题库", q:"客服经理李四为同一客户连续办理挂失重置密码、转账100万元、现金取款10万等多笔业务，每笔业务都需要进行联网核查。", options:["正确","错误"], answer:[1] },
+{ id:266, type:"判断", chapter:"判断题题库", q:"联网核查电子流水记录可作为业务依据代替纸质核查凭证。", options:["正确","错误"], answer:[0] },
+{ id:267, type:"判断", chapter:"判断题题库", q:"客户田七代理陈九办理转账200万元，客服经理仅需对被代理人陈九的身份证进行行内核查。", options:["正确","错误"], answer:[1] },
+{ id:268, type:"判断", chapter:"判断题题库", q:"联网核查模块留存的二代身份证电子影像，可以代替相关业务要求留存的二代身份证纸质复印件。", options:["正确","错误"], answer:[0] },
+{ id:269, type:"判断", chapter:"判断题题库", q:"柜面人员开展联网核查，应初审客户出示的身份证件并进行人证合一比对，正确操作联网核查，根据核查结果，判断是否继续办理业务。", options:["正确","错误"], answer:[0] },
+{ id:270, type:"判断", chapter:"判断题题库", q:"在进行联网核查或对客户身份信息进一步核实时，发现客户以虚假个人身份证件骗取开立银行账户或办理其他银行业务的，应及时向公安机关报案。", options:["正确","错误"], answer:[0] },
+{ id:271, type:"判断", chapter:"判断题题库", q:"联网核查的对象为相关个人，即按照规定出示身份证件的自然人客户或单位客户法定代表人（或单位负责人），以及受托办理业务的代理人等，以下统称“客户”", options:["正确","错误"], answer:[0] },
+{ id:272, type:"判断", chapter:"判断题题库", q:"在联网核查过程中，如需客户出示辅助身份证明材料的，应留存辅助身份证明材料的原件或复印件。", options:["正确","错误"], answer:[0] },
+{ id:273, type:"判断", chapter:"判断题题库", q:"客户二代身份证姓名中包含系统无法识别的生僻字时，如果无法正常机读，应拒绝受理业务。", options:["正确","错误"], answer:[1] },
+{ id:274, type:"判断", chapter:"判断题题库", q:"联网核查模块出现故障的，应直接使用人行核查系统进行人行核查，并按照业务规定留存客户身份证件复印件，打印核查结果。", options:["正确","错误"], answer:[0] },
+{ id:275, type:"判断", chapter:"判断题题库", q:"如发现客户二代身份证被冒用或客户已死亡，应在系统中进行特殊名单标记。", options:["正确","错误"], answer:[0] },
+{ id:276, type:"判断", chapter:"判断题题库", q:"根据外部监管要求，需要核对客户身份信息的业务，应进行联网核查。", options:["正确","错误"], answer:[0] },
+{ id:277, type:"判断", chapter:"判断题题库", q:"客户赵六前来农业银行柜面使用临时身份证办理借记卡密码重置业务时，客服经理张三对赵六的临时身份证进行联网核查时选择“行内核查”。", options:["正确","错误"], answer:[1] },
+{ id:278, type:"判断", chapter:"判断题题库", q:"企业信息联网核查结果仅作为审核企业信息真实性和有效性的内部辅助参考，对核查结果不一致或有其他异常的，营业机构应采取有效措施进一步核实，不得以核查结果不一致为由拒绝为企业办理相关业务。", options:["正确","错误"], answer:[0] },
+{ id:279, type:"判断", chapter:"判断题题库", q:"印章保管人员发生变更时，可以直接将印章交与下一个保管人。", options:["正确","错误"], answer:[1] },
+{ id:280, type:"判断", chapter:"判断题题库", q:"不在“用印名单”内的业务凭证或合同文本，一律不得使用临柜业务实物印章", options:["正确","错误"], answer:[0] },
+{ id:281, type:"判断", chapter:"判断题题库", q:"对外营业机构启用并纳入印控仪使用的临柜业务实物印章，日终需取出随现金箱上交金库保管。", options:["正确","错误"], answer:[1] },
+{ id:282, type:"判断", chapter:"判断题题库", q:"网点不得留存备用印章芯片。", options:["正确","错误"], answer:[0] },
+{ id:283, type:"判断", chapter:"判断题题库", q:"印章芯片作为临柜业务实物印章在印章管理系统中的身份识别ID，与临柜业务实物印章建立一一对应关系，不得重复使用。", options:["正确","错误"], answer:[0] },
+{ id:284, type:"判断", chapter:"判断题题库", q:"建立票据申请人合约前，无需建立信贷客户信息并通过票易贴业务准入审批。", options:["正确","错误"], answer:[1] },
+{ id:285, type:"判断", chapter:"判断题题库", q:"企业申请票据池签约，须已签约等分票据，并开通渠道功能。", options:["正确","错误"], answer:[0] },
+{ id:286, type:"判断", chapter:"判断题题库", q:"票据池合约的客户模式须为集团客户，才可以建立票据池成员单位合约。", options:["正确","错误"], answer:[0] },
+{ id:287, type:"判断", chapter:"判断题题库", q:"票据池成员单位解约前须已办结该合约项下全部业务，且保证金账户无余额。", options:["正确","错误"], answer:[0] },
+{ id:288, type:"判断", chapter:"判断题题库", q:"票据到期后，票易贴经营行应按照相关规定及时发出提示付款申请，确保收回本行贴现资金。", options:["正确","错误"], answer:[0] },
+{ id:289, type:"判断", chapter:"判断题题库", q:"营业机构发现、堵截伪造、变造票据凭证，应于当日至迟次日（或下一工作日）报送上级行。", options:["正确","错误"], answer:[0] },
+{ id:290, type:"判断", chapter:"判断题题库", q:"监管账户设置是指根据监管部门政策要求，通过企业金融服务平台账户监管限额管理交易，将授权账户设置为监管账户的操作。", options:["正确","错误"], answer:[0] },
+{ id:291, type:"判断", chapter:"判断题题库", q:"办理集团客户“一对多”企业网银签约注册业务时，无须经一级分行客户主管部门和平台主管部门共同审批。", options:["正确","错误"], answer:[1] },
+{ id:292, type:"判断", chapter:"判断题题库", q:"客户在柜面申请办理企业金融服务平台业务时，根据《尽调规程》，识别为法定代表人免机读客户以及协同联网核查客户，可免予提供法定代表人、负责人身份证原件，但需提供复印件并加盖公章。", options:["正确","错误"], answer:[0] },
+{ id:293, type:"判断", chapter:"判断题题库", q:"我行企业金融服务平台是通过线上渠道提供对公金融产品和服务的在线经营场所", options:["正确","错误"], answer:[0] },
+{ id:294, type:"判断", chapter:"判断题题库", q:"企业消息服务是指我行通过手机短信等形式，为企业金融服务平台签约客户提供的账户消息通知服务。", options:["正确","错误"], answer:[0] },
+{ id:295, type:"判断", chapter:"判断题题库", q:"联网核查企业相关人员手机号码时，未经被核查人授权的，可以进行手机号码信息联网核查。", options:["正确","错误"], answer:[1] },
+{ id:296, type:"判断", chapter:"判断题题库", q:"机关、实行预算管理的事业单位开立基本存款账户、临时存款账户和专用存款账户，应经财政部门批准并经人民银行核准，另有规定的除外。", options:["正确","错误"], answer:[0] },
+{ id:297, type:"判断", chapter:"判断题题库", q:"开户行作为企业开立基本存款账户、临时存款账户，应当立即最迟于13日后将开户信息通过账户管理系统向当地人民银行分支机构备案。", options:["正确","错误"], answer:[1] },
+{ id:298, type:"判断", chapter:"判断题题库", q:"企业银行结算账户，自正式开立之日起3个工作日后，方可办理付款业务。", options:["正确","错误"], answer:[1] },
+{ id:299, type:"判断", chapter:"判断题题库", q:"对账工作要遵循《中国农业银行对账管理办法》等相关规定，如发现对账不符，应查明原因，及时处理。", options:["正确","错误"], answer:[0] },
+{ id:300, type:"判断", chapter:"判断题题库", q:"清算业务要以合规为前提，严格执行监管要求及农业银行相关制度规定。", options:["正确","错误"], answer:[0] },
+{ id:301, type:"判断", chapter:"判断题题库", q:"收汇业务遵循资金收妥入账原则，特殊情况下可以垫付清算资金。", options:["正确","错误"], answer:[1] },
+{ id:302, type:"判断", chapter:"判断题题库", q:"实物黄金回购必须实名制，根据系统提示，超过一定额度的要进行联网核查，并留存客户身份信息。", options:["正确","错误"], answer:[0] },
+{ id:303, type:"判断", chapter:"判断题题库", q:"批量扣税是指征收机关、纳税人与我行签订委托缴款协议后，征收机关将批量扣税报文通过TIPS转发，付款账户开户行予以扣款，并将扣款结果回执通过TIPS返回征收机关的过程。", options:["正确","错误"], answer:[0] },
+{ id:304, type:"判断", chapter:"判断题题库", q:"实时扣税是指征收机关、纳税人与我行签订委托缴款协议后，由纳税人通过征收机关发起逐笔扣税信息，TIPS进行实时转发，付款账户开户行予以扣款，并将扣款结果回执通过TIPS实时返回征收机关的过程。", options:["正确","错误"], answer:[0] },
+{ id:305, type:"判断", chapter:"判断题题库", q:"中国农业银行数字国库信息处理系统主要处理财税库银横向联网系统电子缴税业", options:["正确","错误"], answer:[0] },
+{ id:306, type:"判断", chapter:"判断题题库", q:"财政零余额账户包括中央预算单位零余额账户、地方预算单位零余额账户、中央专项资金财政零余额账户和地方财政部门零余额账户。", options:["正确","错误"], answer:[0] },
+{ id:307, type:"判断", chapter:"判断题题库", q:"委托缴款协议是指征收机关、纳税人、我行营业机构三方共同签订的由纳税人委托其开户行根据征收机关发起的实时、批量缴税信息从其指定账户进行扣款的协议。", options:["正确","错误"], answer:[0] },
+{ id:308, type:"判断", chapter:"判断题题库", q:"办理签约缴税业务不需要事先签订委托缴款协议。", options:["正确","错误"], answer:[1] },
+{ id:309, type:"判断", chapter:"判断题题库", q:"银行端缴税业务的办理，需先进行申报查询，再办理缴税业务。", options:["正确","错误"], answer:[0] },
+{ id:310, type:"判断", chapter:"判断题题库", q:"内勤行长是网点服务管理的第一责任人。", options:["正确","错误"], answer:[1] },
+{ id:311, type:"判断", chapter:"判断题题库", q:"网管会会议不得以党委会、行长办公会等会议代替。", options:["正确","错误"], answer:[0] },
+{ id:312, type:"判断", chapter:"判断题题库", q:"网管会会议纪要由主任委员或客服经理签发后生效。", options:["正确","错误"], answer:[1] },
+{ id:313, type:"判断", chapter:"判断题题库", q:"对特色网点实行“标签化”管理，一个特色网点只能定义一个“标签”类型。", options:["正确","错误"], answer:[1] },
+{ id:314, type:"判断", chapter:"判断题题库", q:"支行或网点系统操作员、集中管理外包人员通过手机输入巡检码或扫描二维码对设备进行现场巡检，系统自动登记设备状态和巡检记录相关信息。", options:["正确","错误"], answer:[0] },
+{ id:315, type:"判断", chapter:"判断题题库", q:"每台超级柜台主机只允许挂靠一台超级柜台辅柜设备。", options:["正确","错误"], answer:[0] },
+{ id:316, type:"判断", chapter:"判断题题库", q:"迁移设备必须处于迁址停机或关停状态。", options:["正确","错误"], answer:[0] },
+{ id:317, type:"判断", chapter:"判断题题库", q:"设备前置编号为设备入网唯一标识，不允许修改。", options:["正确","错误"], answer:[0] },
+{ id:318, type:"判断", chapter:"判断题题库", q:"网点设备管理系统用户是系统的实际使用者，一名用户可以对应多个系统角色和设备角色。但系统管理员、程序管理员的用户不能兼任其他系统角色。", options:["正确","错误"], answer:[0] },
+{ id:319, type:"判断", chapter:"判断题题库", q:"网点设备管理系统数据访问和操作遵守“最小化访问”原则。", options:["正确","错误"], answer:[0] },
+{ id:320, type:"判断", chapter:"判断题题库", q:"网点可以自己擅自发布未经上级行审批的信息。", options:["正确","错误"], answer:[1] },
+{ id:321, type:"判断", chapter:"判断题题库", q:"设备维护商进行设备维护维修时，内勤行长或客服经理要审核维护维修人员的身份证和工作证件（或介绍信）。", options:["正确","错误"], answer:[0] },
+{ id:322, type:"判断", chapter:"判断题题库", q:"非本行人员不得在网点宣传推介、销售理财产品。", options:["正确","错误"], answer:[0] },
+{ id:323, type:"判断", chapter:"判断题题库", q:"配备在网点大堂的智能设备及客户体验终端等不得擅自在本地保存任何信息资料。", options:["正确","错误"], answer:[0] },
+{ id:324, type:"判断", chapter:"判断题题库", q:"客服经理是网点营业场所现场管理的直接责任人，在履行业务监督职责基础上，负责落实网点营业场所现场管理各项工作。", options:["正确","错误"], answer:[1] },
+{ id:325, type:"判断", chapter:"判断题题库", q:"办理代发工资类易捷收付业务，只须提供加盖委托方有效印鉴的《中国农业银行股份有限公司易捷收付业务申请表》。", options:["正确","错误"], answer:[1] },
+{ id:326, type:"判断", chapter:"判断题题库", q:"通过11000对公客户基本信息查询签约客户CCS风险等级，风险等级为高风险、极高风险，及系统提示在农业银行反洗钱制裁名单库内的客户，禁止签约资金归集。", options:["正确","错误"], answer:[0] },
+{ id:327, type:"判断", chapter:"判断题题库", q:"贷款账户不得建立资金归集关系。", options:["正确","错误"], answer:[0] },
+{ id:328, type:"判断", chapter:"判断题题库", q:"委托方对公账户需开通企业金融服务平台（银企通客户端、银企直联、企业网银等）才能开办易捷收付业务。", options:["正确","错误"], answer:[0] },
+{ id:329, type:"判断", chapter:"判断题题库", q:"不符合本行制裁风险管理规定的客户，不予受理账户支付限额服务。", options:["正确","错误"], answer:[0] },
+{ id:330, type:"判断", chapter:"判断题题库", q:"营业机构接到公安机关对电信网络诈骗涉案资金即时查询、紧急止付、快速冻结、及时解冻和资金返还要求后，可以拒绝配合。", options:["正确","错误"], answer:[1] },
+{ id:331, type:"判断", chapter:"判断题题库", q:"小额免验密维护是指客户开通或关闭卡片小额交易密码校验的功能的业务。", options:["正确","错误"], answer:[0] },
+{ id:332, type:"判断", chapter:"判断题题库", q:"对于被拒绝的授权业务，业务受理人员应认真查找差错，修改无误后重新提交申请；严禁业务受理人员反复提交存在差错的业务申请。", options:["正确","错误"], answer:[0] },
+{ id:333, type:"判断", chapter:"判断题题库", q:"银行本票是银行签发的，承诺自己在见票时无条件支付确定的金额给收款人或者持票人的票据。", options:["正确","错误"], answer:[0] },
+{ id:334, type:"判断", chapter:"判断题题库", q:"汇票经办行应做到银行汇票专用章和银行汇票凭证分管、分用。", options:["正确","错误"], answer:[0] },
+{ id:335, type:"判断", chapter:"判断题题库", q:"同业存放定期账户是指我行为境内其他银行开立的、与本银行或者第三方发生本外币资金划转的银行账户。", options:["正确","错误"], answer:[1] },
+{ id:336, type:"判断", chapter:"判断题题库", q:"对公外汇账户是我行为境内其他银行开立的、用于合作性同业存款等业务的账户。", options:["正确","错误"], answer:[1] },
+{ id:337, type:"判断", chapter:"判断题题库", q:"同业存放账户是指是指我行为境内其他银行类金融机构开立的银行存款账户（不含托管账户）。", options:["正确","错误"], answer:[0] },
+{ id:338, type:"判断", chapter:"判断题题库", q:"客服经理不得承担投资类产品销售（基金、保险、投资理财等）、营销管户等职责，坚决杜绝“一手清”现象。", options:["正确","错误"], answer:[0] },
+{ id:339, type:"判断", chapter:"判断题题库", q:"根据业务能力、服务水平等，将客服经理履职等级从低到高分为一级至八级。", options:["正确","错误"], answer:[0] },
+{ id:340, type:"判断", chapter:"判断题题库", q:"智能或自助设备名称标识准确，设置简单业务功能介绍，不能提供服务时设置暂停服务或相应提示标识，并及时排除故障。", options:["正确","错误"], answer:[0] },
+{ id:341, type:"判断", chapter:"判断题题库", q:"运营管理部门牵头开展客服经理交易服务工作的培训、指导和规范性管理", options:["正确","错误"], answer:[0] },
+{ id:342, type:"判断", chapter:"判断题题库", q:"客服经理由于坚持原则受到不公正待遇的，客服经理有权向本级别领导或上级行有关部门反映，维护自身合法权益。", options:["正确","错误"], answer:[0] },
+{ id:343, type:"判断", chapter:"判断题题库", q:"新入行、新转岗客服经理独立临柜前，分支行应当组织包括业务考试和技能测试在内的综合考核，考核结果作为定岗定级的依据。", options:["正确","错误"], answer:[0] },
+{ id:344, type:"判断", chapter:"判断题题库", q:"新入行客服经理临柜实习期可分配核心业务系统用户号，但不得单独临柜。", options:["正确","错误"], answer:[0] },
+{ id:345, type:"判断", chapter:"判断题题库", q:"营业期间，内勤行长或履行内勤行长职责的代班主管可以顶岗或代班办理业务。", options:["正确","错误"], answer:[1] },
+{ id:346, type:"判断", chapter:"判断题题库", q:"内勤行长在依规尽责履职的基础上，其薪酬可与委派网点经营业绩适当挂钩，但仍应以委派行确定的挂钩分配比例为主。", options:["正确","错误"], answer:[0] },
+{ id:347, type:"判断", chapter:"判断题题库", q:"内勤行长是正式党员，经选举参加支部委员会的，可兼任纪检委员。", options:["正确","错误"], answer:[0] },
+{ id:348, type:"判断", chapter:"判断题题库", q:"代班主管履行内勤行长职责期间，承担内勤行长职责，具有与内勤行长相同的工作权限。", options:["正确","错误"], answer:[0] },
+{ id:349, type:"判断", chapter:"判断题题库", q:"网点设备开通前，运营管理部门要及时将设备信息录入网点设备管理系统，确保入网信息的准确性、完整性。", options:["正确","错误"], answer:[0] },
+{ id:350, type:"判断", chapter:"判断题题库", q:"网点应为老年客户提供老花镜、爱心座椅或轮椅等辅助设施，有条件的网点可提供移动填单台、助听器、血压仪等关怀设施。", options:["正确","错误"], answer:[0] },
+{ id:351, type:"判断", chapter:"判断题题库", q:"各级行不得对老年人使用柜面人工服务设置分流率等考核指标。", options:["正确","错误"], answer:[0] },
+{ id:352, type:"判断", chapter:"判断题题库", q:"在业务办理中对客户身份进行校验时，针对使用人脸识别技术办理业务存在困难的客户，应拒绝办理。", options:["正确","错误"], answer:[1] },
+{ id:353, type:"判断", chapter:"判断题题库", q:"上级行可建立适老化及特殊群体服务的柔性团队，由柔性团队提供上门服务。", options:["正确","错误"], answer:[0] },
+{ id:354, type:"判断", chapter:"判断题题库", q:"某企业名称变更更换公章、财务专用章，其法定代表人张三应提供变更名称后的营业执照等客户身份证明文件。", options:["正确","错误"], answer:[0] },
+{ id:355, type:"判断", chapter:"判断题题库", q:"营业机构除对预留印鉴进行建库外，客户公章也应进行建库。", options:["正确","错误"], answer:[0] },
+{ id:356, type:"判断", chapter:"判断题题库", q:"预留印鉴是客户在开立银行账户后凭以办理款项支付结算的权利证明，也是开户银行办理客户支付结算业务的审核依据。", options:["正确","错误"], answer:[0] },
+{ id:357, type:"判断", chapter:"判断题题库", q:"单位客户在预留印鉴中公章或财务专用章的名称应与其申请开立的银行结算账户的账户名称保持一致。", options:["正确","错误"], answer:[0] },
+{ id:358, type:"判断", chapter:"判断题题库", q:"预留印鉴必须是单位的公章加其法定代表人(单位负责人)的签章。", options:["正确","错误"], answer:[1] },
+{ id:359, type:"判断", chapter:"判断题题库", q:"预留印鉴及电子验印业务执行客户信息保密相关规定，除法律法规有明确规定外，各机构不得向任何单位或个人提供客户的预留印鉴印模、印模电子图像等信息", options:["正确","错误"], answer:[0] },
+{ id:360, type:"判断", chapter:"判断题题库", q:"各级行运营监管人员应将辖内营业机构、建库中心预留印鉴和电子验印业务的管理纳入检查内容，检查重点包括预留印鉴受理、审核，印鉴卡片保管、使用及交接，印鉴建库及电子验印处理，印鉴变更、注销处理等。", options:["正确","错误"], answer:[0] },
+{ id:361, type:"判断", chapter:"判断题题库", q:"营业机构内勤行长（建库中心负责人）负责所在机构印鉴预留、印鉴卡片（含空白印鉴卡）保管使用、建库操作、印鉴变更、印鉴注销等环节的监督。", options:["正确","错误"], answer:[0] },
+{ id:362, type:"判断", chapter:"判断题题库", q:"在预留印鉴建库完成前，遇有客户办理产品签约确需验印的，营业机构可以根据留存的预留印鉴卡、单位银行结算账户综合服务申请表或变更印鉴申请表上预留的印鉴进行手工折角验印，换人复核。", options:["正确","错误"], answer:[0] },
+{ id:363, type:"判断", chapter:"判断题题库", q:"营业机构应在为客户办理银行账户销户手续时，一并办理预留印鉴的注销。", options:["正确","错误"], answer:[0] },
+{ id:364, type:"判断", chapter:"判断题题库", q:"人工辅助验印是指通过电子验印系统提供的模拟折角等验印模式与被测印鉴进行比对，结合人工判断确定验印结果，人工辅助验印需双人核验。", options:["正确","错误"], answer:[0] },
+{ id:365, type:"判断", chapter:"判断题题库", q:"注册验资临时存款账户如为多个出资人，其预留印鉴应为全体出资人共同出具的委托授权书同意的委托人签章，可以授权出资人以外的人。", options:["正确","错误"], answer:[1] },
+{ id:366, type:"判断", chapter:"判断题题库", q:"对需要上门采集客户预留银行印鉴的，由客户出具书面申请，经一级支行前台业务分管行长签字同意后，由两名工作人员共同领取空白印鉴卡、共同送交客户、共同取回。", options:["正确","错误"], answer:[0] },
+{ id:367, type:"判断", chapter:"判断题题库", q:"对客户无法交回原预留印鉴卡、客户印章遗失或被盗等无法出具原预留印鉴的，应单独出具变更预留印鉴申请书，在变更预留印鉴申请书中说明原因。", options:["正确","错误"], answer:[0] },
+{ id:368, type:"判断", chapter:"判断题题库", q:"营业机构除对预留印鉴进行建库外，对公客户的公章不在建库范畴内。", options:["正确","错误"], answer:[1] },
+{ id:369, type:"判断", chapter:"判断题题库", q:"人工辅助核验可单人核验。", options:["正确","错误"], answer:[1] },
+{ id:370, type:"判断", chapter:"判断题题库", q:"同一客户在同一机构开立的多个账户可以共用一套预留印鉴，无需事先通过协议、申请等方式约定。", options:["正确","错误"], answer:[1] },
+{ id:371, type:"判断", chapter:"判断题题库", q:"档案保管期限从档案生成的所属年度终了后第一天算起。", options:["正确","错误"], answer:[0] },
+{ id:372, type:"判断", chapter:"判断题题库", q:"电子档案与同类型纸质档案保管期限相同。", options:["正确","错误"], answer:[0] },
+{ id:373, type:"判断", chapter:"判断题题库", q:"档案原件一般不得对外借出。内外部有权机构因工作需要调阅档案原件必须借出的，需经档案场所所属行运营管理部门总经理审批，对借出档案扫描或复印备份", options:["正确","错误"], answer:[0] },
+{ id:374, type:"判断", chapter:"判断题题库", q:"现场调阅档案时，档案查阅应处于调阅区域视频监控下，调阅人员可以进入保管区和交接区。", options:["正确","错误"], answer:[1] },
+{ id:375, type:"判断", chapter:"判断题题库", q:"电子档案指各级行业务办理过程中，通过计算机等电子设备形成、办理、传输和存储的电子报表、电子凭证、电子文本、影像、图片、声音、视频等数字格式的电子文件。", options:["正确","错误"], answer:[0] },
+{ id:376, type:"判断", chapter:"判断题题库", q:"机构撤并、分设，档案移交账务接收机构保管。", options:["正确","错误"], answer:[0] },
+{ id:377, type:"判断", chapter:"判断题题库", q:"客服经理对本人凭证的真实性、完整性负责。在日终签退前，凭证按照BoEing、一体化平台、其他系统顺序，编号由小到大，整理并交内勤行长审核。", options:["正确","错误"], answer:[0] },
+{ id:378, type:"判断", chapter:"判断题题库", q:"内勤行长可使用本机构客服经理的自助（智能）设备加配钞系统用户号进行业务处理。", options:["正确","错误"], answer:[1] },
+{ id:379, type:"判断", chapter:"判断题题库", q:"违反运营管理制度的行为，且受到留用察看及以上纪律处分的，应终身禁止建立用户号。", options:["正确","错误"], answer:[0] },
+{ id:380, type:"判断", chapter:"判断题题库", q:"员工在受到撤职处分期间，可以为其建立BoEing用户号。", options:["正确","错误"], answer:[1] },
+{ id:381, type:"判断", chapter:"判断题题库", q:"BoEing角色类型分为机构角色、用户角色和设备角色。", options:["正确","错误"], answer:[0] },
+{ id:382, type:"判断", chapter:"判断题题库", q:"非增值税一般纳税人只能开具普通发票。", options:["正确","错误"], answer:[0] },
+{ id:383, type:"判断", chapter:"判断题题库", q:"严禁虚开与实际经营业务情况不符的发票。", options:["正确","错误"], answer:[0] },
+{ id:384, type:"判断", chapter:"判断题题库", q:"运营管理部门是增值税发票开具牵头管理部门。", options:["正确","错误"], answer:[0] },
+{ id:385, type:"判断", chapter:"判断题题库", q:"办理电子商业汇票业务的营业机构必须具有支付系统行号，并满足本行《中国农业银行数字化票据服务平台管理办法》中对经营机构的管理要求。", options:["正确","错误"], answer:[0] },
+{ id:386, type:"判断", chapter:"判断题题库", q:"单位和个人在同一票据交换区域进行的各种人民币款项结算均可以使用银行本票", options:["正确","错误"], answer:[0] },
+{ id:387, type:"判断", chapter:"判断题题库", q:"单位客户到柜面办理转账汇款业务，客服经理应查看客户洗钱和恐怖融资风险等", options:["正确","错误"], answer:[0] },
+{ id:388, type:"判断", chapter:"判断题题库", q:"电子商业汇票持票人提示付款或逾期提示付款，经办行不得无理拒付。", options:["正确","错误"], answer:[0] },
+{ id:389, type:"判断", chapter:"判断题题库", q:"电子商业汇票的付款人为承兑人。", options:["正确","错误"], answer:[0] },
+{ id:390, type:"判断", chapter:"判断题题库", q:"电子商业汇票分为电子银行承兑汇票、电子财务公司承兑汇票和电子商业承兑汇票", options:["正确","错误"], answer:[1] },
+{ id:391, type:"判断", chapter:"判断题题库", q:"电子商业汇票付款期限自出票日起，至到期日止，最长不得超过6个月。", options:["正确","错误"], answer:[0] },
+{ id:392, type:"判断", chapter:"判断题题库", q:"内勤行长或指定专人应每日检查核对业务记账凭证、业务清单的核算是否真实、正确，“票交所待清算款项专户（尾号4499D）”当日往来资金汇划完毕后，余额是否为零。核算错误或日终账户余额不为零的，内勤行长或其授权人应查明原因，并登记当天《内勤行长工作日志》。", options:["正确","错误"], answer:[0] },
+{ id:393, type:"判断", chapter:"判断题题库", q:"持票人委托银行发出提示付款申请的，应向其受理行提交加盖其预留银行印鉴的《商业汇票业务办理申请表》。", options:["正确","错误"], answer:[0] },
+{ id:394, type:"判断", chapter:"判断题题库", q:"电子商业汇票以人民币为计价单位。", options:["正确","错误"], answer:[0] },
+{ id:395, type:"判断", chapter:"判断题题库", q:"已签约电子商业汇票业务的客户，如当前持有票据，或作为承兑人/出票人的票据尚未结清/作废时，网点不得将其签约电子商业汇票业务的账户销户。", options:["正确","错误"], answer:[0] },
+{ id:396, type:"判断", chapter:"判断题题库", q:"电子商业汇票票据到期日，如经办行已从出票人存款账户（含保证金账户）扣划银行承兑汇票款项至本行专户，仍不能足额支付票款，客服经理应及时通知客户经理，由客户经理履行后续垫款处理。", options:["正确","错误"], answer:[0] },
+{ id:397, type:"判断", chapter:"判断题题库", q:"电子银行承兑汇票由银行业金融机构承兑；电子财务公司承兑汇票由财务公司承兑；电子商业承兑汇票由金融机构以外的其他组织承兑。", options:["正确","错误"], answer:[1] },
+{ id:398, type:"判断", chapter:"判断题题库", q:"定期贷记业务是指当事各方按照事先签订的协议，发起批量付款业务。如代付工资、保险金等，其业务特点是单个付款人同时付款给多个收款人。", options:["正确","错误"], answer:[0] },
+{ id:399, type:"判断", chapter:"判断题题库", q:"客户张三申请签发现金本票，收款人某公司，我行可以为其签发现金本票。", options:["正确","错误"], answer:[1] },
+{ id:400, type:"判断", chapter:"判断题题库", q:"追索人可以向多个被追索人发出追索通知，但只能依次一对一起。", options:["正确","错误"], answer:[0] },
+{ id:401, type:"判断", chapter:"判断题题库", q:"持票人委托银行发出同意清偿申请的，无需向其受理行提交加盖其预留银行印鉴的电子商业汇票业务申请表。", options:["正确","错误"], answer:[1] },
+{ id:402, type:"判断", chapter:"判断题题库", q:"出票人申请签发电子商业承兑汇票，不应通过企业金融服务平台、银企通互联平台办理出票信息登记，只能委托银行代为办理。", options:["正确","错误"], answer:[1] },
+{ id:403, type:"判断", chapter:"判断题题库", q:"出票人或背书人在电子商业汇票上记载了“不得转让”事项的，电子商业汇票可继续背书。", options:["正确","错误"], answer:[1] },
+{ id:404, type:"判断", chapter:"判断题题库", q:"已冻结的票据不能发起手动提示付款申请。", options:["正确","错误"], answer:[0] },
+{ id:405, type:"判断", chapter:"判断题题库", q:"本行作为承兑人时，应及时足额支付电子商业汇票票款，不得故意压票、拖延支票", options:["正确","错误"], answer:[0] },
+{ id:406, type:"判断", chapter:"判断题题库", q:"客户签约电子商业汇票业务，客户经理应审核申请资料的完整性与合规性后，与客户签订《电子商业汇票业务服务协议》、《票据业务承诺函》，并在《电子商业汇票业务签约/维护申请表》上签章确认", options:["正确","错误"], answer:[0] },
+{ id:407, type:"判断", chapter:"判断题题库", q:"票据当事人在电子商业汇票上的签章，为该当事人可靠的电子签名。", options:["正确","错误"], answer:[0] },
+{ id:408, type:"判断", chapter:"判断题题库", q:"数字化票据服务平台用户管理系统操作采用录入复核制，完成操作申请后，需换人复核。", options:["正确","错误"], answer:[0] },
+{ id:409, type:"判断", chapter:"判断题题库", q:"涉及“待解付银行承兑汇票款”专户（尾号4646D）的手工账务处理，须经内勤行长或其授权人审批。", options:["正确","错误"], answer:[0] },
+{ id:410, type:"判断", chapter:"判断题题库", q:"内勤行长或指定专人应每日检查核对业务记账凭证、业务清单的核算是否真实、正确，“票交所待清算款项专户（尾号4499D）”当日往来资金汇划完毕后，余额是否为零。", options:["正确","错误"], answer:[0] },
+{ id:411, type:"判断", chapter:"判断题题库", q:"营业机构申请开办电子商业汇票业务，一级分行运营管理部应确保申请信息完整性、一致性、准确性，确保扫描件要素清晰，申请机构全称应与营业执照一致，申请机构的内部机构名称、内部机构号码应与BoEing机构名称及号码一致。", options:["正确","错误"], answer:[0] },
+{ id:412, type:"判断", chapter:"判断题题库", q:"电子银行承兑汇票出票，出票人委托银行办理出票申请时，采用“客户经理在数字化票据服务平台录入、客服经理在BoEing系统复核”的双人操作模式。", options:["正确","错误"], answer:[0] },
+{ id:413, type:"判断", chapter:"判断题题库", q:"对单位客户汇款单笔金额超过15万元（含）的，必须换人验印。", options:["正确","错误"], answer:[1] },
+{ id:414, type:"判断", chapter:"判断题题库", q:"定期借记业务是指当事各方按照事先签订的协议，发起批量扣款业务。如收款单位委托其开户行收取水、电、煤气等公用事业费用，其业务特点是单个收款人同时向多个付款人收款。", options:["正确","错误"], answer:[0] },
+{ id:415, type:"判断", chapter:"判断题题库", q:"定期业务包括定期贷记业务和定期借记业务。", options:["正确","错误"], answer:[0] },
+{ id:416, type:"判断", chapter:"判断题题库", q:"集中代收付业务是指收款或付款委托单位通过集中代收付中心（全国综合服务平台）发起代收或代付业务，集中代收付中心（综合服务平台）将业务指令经小额支付系统转发至收付款委托单位的开户行，开户行完成扣款或收款入账，并将处理结果返回至代收付中心及付款委托单位。", options:["正确","错误"], answer:[0] },
+{ id:417, type:"判断", chapter:"判断题题库", q:"批量代付业务，指集中代收付中心根据付款单位或个人委托，从付款人账户支付指定金额和业务类型款项至多个收款人账户的业务。业务特点是一个付款人、多个收款人。", options:["正确","错误"], answer:[0] },
+{ id:418, type:"判断", chapter:"判断题题库", q:"批量代收业务，指集中代收付中心根据收款单位委托，从多个已签约付款人银行账户，收取指定金额和业务类型款项至收款单位账户的业务。业务特点是一个收款人、多个付款人。", options:["正确","错误"], answer:[0] },
+{ id:419, type:"判断", chapter:"判断题题库", q:"申请人或收款人为单位的，可以签发现金汇票。", options:["正确","错误"], answer:[1] },
+{ id:420, type:"判断", chapter:"判断题题库", q:"实时代付业务，指集中代收付中心根据付款单位或个人委托，实时从付款人账户支付指定金额和费用类型款项至收款人账户的业务。业务特点是一个收款人、一个付款人、单笔实时。", options:["正确","错误"], answer:[0] },
+{ id:421, type:"判断", chapter:"判断题题库", q:"实时代收业务，指集中代收付中心根据收款单位委托，实时从一个已签约付款人银行账户，收取指定金额和业务类型款项至收款单位账户的业务。业务特点是一个收款人、一个付款人、单笔实时。", options:["正确","错误"], answer:[0] },
+{ id:422, type:"判断", chapter:"判断题题库", q:"汇出行当日营业结束时，往账业务存在“录入”状态的，系统禁止行所签退。", options:["正确","错误"], answer:[0] },
+{ id:423, type:"判断", chapter:"判断题题库", q:"转入网内应解汇款专户的来账应及时核销。客服经理核销时，核销类型可选择支取现金、转入客户账（含内部账户）", options:["正确","错误"], answer:[0] },
+{ id:424, type:"判断", chapter:"判断题题库", q:"客户申请开立人民币单位银行结算账户使用电子营业执照开户客户仍需提供纸质营业执照。", options:["正确","错误"], answer:[1] },
+{ id:425, type:"判断", chapter:"判断题题库", q:"智速平台开户，客户出示使用电子营业执照时，个人身份证件支持第二代身份证", options:["正确","错误"], answer:[0] },
+{ id:426, type:"判断", chapter:"判断题题库", q:"对公账户开户新流程，是基于原有开户及签约模式的优化流程，将客户非必须在网点办理的业务步骤前移至网点前，创建了“客户经理线上采集信息影像+网点中心预审核+客户到店一键处理”开户流程新模式。", options:["正确","错误"], answer:[0] },
+{ id:427, type:"判断", chapter:"判断题题库", q:"财政和预算单位的零余额账户不计息，可透支。", options:["正确","错误"], answer:[1] },
+{ id:428, type:"判断", chapter:"判断题题库", q:"对于拟开办代理中央财政国库集中支付业务的分支机构，各一级分行应本着先培训后代理的原则，确保新增经办业务管理人员和经办人员能够全面掌握有关规定和操作流程。", options:["正确","错误"], answer:[0] },
+{ id:429, type:"判断", chapter:"判断题题库", q:"农民工工资专用账户销户应提供监管部门出具的销户通知。", options:["正确","错误"], answer:[0] },
+{ id:430, type:"判断", chapter:"判断题题库", q:"代理中央财政国库集中支付业务综合性较强，各有关职能部门要明确分工、密切协作，共同做好该业务的管理、指导、培训和监督等工作。", options:["正确","错误"], answer:[0] },
+{ id:431, type:"判断", chapter:"判断题题库", q:"各经办行不得向财政部及中央预算单位收取各类手续费，代理中央财政国库集中支付业务手续费由财政部统一向总行支付。", options:["正确","错误"], answer:[0] },
+{ id:432, type:"判断", chapter:"判断题题库", q:"重要空白凭证按来源分为本行重要空白凭证和代理重要空白凭证。", options:["正确","错误"], answer:[0] },
+{ id:433, type:"判断", chapter:"判断题题库", q:"重要空白凭证统一由营业网点库房负责集中销毁，对于扁平化管理的分行，可由支行及以上库房负责销毁。", options:["正确","错误"], answer:[1] },
+{ id:434, type:"判断", chapter:"判断题题库", q:"重要空白凭证是指无面额的经银行或客户填写金额并签章后，具有支付效力的空白凭证。", options:["正确","错误"], answer:[0] },
+{ id:435, type:"判断", chapter:"判断题题库", q:"业务部门提出准入或变更重要空白凭证申请，具体格式见《重要空白凭证维护申请函》，经运营管理部门审批，符合标准的纳入重要空白凭证管理。", options:["正确","错误"], answer:[0] },
+{ id:436, type:"判断", chapter:"判断题题库", q:"柜员日终前对所保管的重要空白凭证进行账实检查，内勤行长（或其授权人）负责监督监督。", options:["正确","错误"], answer:[0] },
+{ id:437, type:"判断", chapter:"判断题题库", q:"年末，不得有在途重要空白凭证。", options:["正确","错误"], answer:[0] },
+{ id:438, type:"判断", chapter:"判断题题库", q:"应由银行签发的重要空白凭证，严禁客户签发；应由客户签发的重要空白凭证，严禁银行代为签发。", options:["正确","错误"], answer:[0] },
+{ id:439, type:"判断", chapter:"判断题题库", q:"各级检查可以合并同一天进行。", options:["正确","错误"], answer:[1] },
+{ id:440, type:"判断", chapter:"判断题题库", q:"通过智速账户平台办理业务，客户无需填写单项业务及产品纸质申请书、协议，通过参与业务流程、阅读电子协议体现申请意愿与事项。", options:["正确","错误"], answer:[0] },
+{ id:441, type:"判断", chapter:"判断题题库", q:"重要空白凭证必须印制号码，且同一种类重要空白凭证的号码应在一级分行辖内唯一。", options:["正确","错误"], answer:[0] },
+{ id:442, type:"判断", chapter:"判断题题库", q:"通过智速账户平台办理开户联动签约业务时，对于开户成功但产品签约失败的情况，客服经理当日可依据客户提供的开户联动签约资料或打印的资料影像，及《综合服务申请表》，通过BoEing系统或智速账户平台“产品签约”交易完成签约，无需客户重复提供资料。", options:["正确","错误"], answer:[0] },
+{ id:443, type:"判断", chapter:"判断题题库", q:"不得将非机具使用的重要空白凭证调入系统用户或机器用户。", options:["正确","错误"], answer:[0] },
+{ id:444, type:"判断", chapter:"判断题题库", q:"未使用的重要空白凭证不得加盖本行印章或经办人名章。", options:["正确","错误"], answer:[0] },
+{ id:445, type:"判断", chapter:"判断题题库", q:"财政部门、预算单位与部队客户的单位印章（含公章及预留印鉴）无法提供到开户网点的情形，可通过智速账户预打印功能提前打印《综合服务申请表》，由客户经理上门后完成签章。", options:["正确","错误"], answer:[0] },
+{ id:446, type:"判断", chapter:"判断题题库", q:"经办人、法定代表人/单位负责人、产品签约涉及人员（如网银操作员、单位结算卡持卡人等）的二代身份证联网核查已嵌入业务流程，无需另行核查及打印核查结果，当地监管部门另有要求的除外。", options:["正确","错误"], answer:[0] },
+{ id:447, type:"判断", chapter:"判断题题库", q:"集中加配钞流程下，同一钞箱的清分装箱与回钞清点无须换人操作。", options:["正确","错误"], answer:[0] },
+{ id:448, type:"判断", chapter:"判断题题库", q:"自助（智能）设备加配钞管理中，加钞岗位不固定的，每人连续在岗时间不得超过1个月。", options:["正确","错误"], answer:[0] },
+{ id:449, type:"判断", chapter:"判断题题库", q:"加配钞应执行限额管理机制，严禁超限额加钞。", options:["正确","错误"], answer:[0] },
+{ id:450, type:"判断", chapter:"判断题题库", q:"集中加配钞流程下，对公受理岗还应检查隔日加钞钞箱是否已全部入库保管。", options:["正确","错误"], answer:[1] },
+{ id:451, type:"判断", chapter:"判断题题库", q:"离行式自助设备必须采用整体换箱方式。", options:["正确","错误"], answer:[0] },
+{ id:452, type:"判断", chapter:"判断题题库", q:"自助（智能）设备一律不得采用补充方式进行加配钞。", options:["正确","错误"], answer:[1] },
+{ id:453, type:"判断", chapter:"判断题题库", q:"自助设备可以为身份证件已过期的客户办理业务。", options:["正确","错误"], answer:[1] },
+{ id:454, type:"判断", chapter:"判断题题库", q:"支行自助设备主管部门要定期、不定期地组织对自助设备及运行环境的全面巡检，定期巡检间隔时间可以超过三个月", options:["正确","错误"], answer:[1] },
+{ id:455, type:"判断", chapter:"判断题题库", q:"离行式自助设备的日常巡检，至少每月巡检九次。", options:["正确","错误"], answer:[1] },
+{ id:456, type:"判断", chapter:"判断题题库", q:"在行式自助设备的日常巡检，由设备管理员负责，营业期间至少在每两日营业结束后巡检一次。", options:["正确","错误"], answer:[1] },
+{ id:457, type:"判断", chapter:"判断题题库", q:"他行卡、国际卡在自助设备上的日累计最多取款次数为19次，日累计取款限额为20100元。", options:["正确","错误"], answer:[1] },
+{ id:458, type:"判断", chapter:"判断题题库", q:"客户田七持贷记卡在我行自助设备取款，一天最多可以取款30次。", options:["正确","错误"], answer:[1] },
+{ id:459, type:"判断", chapter:"判断题题库", q:"自助现金终端本行个人同名账户之间转账的，资金实时到账。", options:["正确","错误"], answer:[0] },
+{ id:460, type:"判断", chapter:"判断题题库", q:"设备维护维修前，设备管理员要检查设备吞卡槽和出钞通道，取出吞没卡和卡钞，在确认设备无吞没卡和卡钞后方可允许进行维护维修。", options:["正确","错误"], answer:[0] },
+{ id:461, type:"判断", chapter:"判断题题库", q:"金融机构及其工作人员应当对报告可疑交易的情况予以保密，不得违反规定向任何单位和个人提供。", options:["正确","错误"], answer:[0] },
+{ id:462, type:"判断", chapter:"判断题题库", q:"国家采取措施，保障消费者依法行使权利，维护消费者的合法权益。", options:["正确","错误"], answer:[0] },
+{ id:463, type:"判断", chapter:"判断题题库", q:"经营者向消费者提供商品或者服务，应当依照《中华人民共和国产品质量法》和其他有关法律、法规的规定履行义务。", options:["正确","错误"], answer:[0] },
+{ id:464, type:"判断", chapter:"判断题题库", q:"对于代理上海黄金交易所个人贵金属交易业务，解约的贵金属交易账户在同一个交易日内可以重新签约。", options:["正确","错误"], answer:[1] },
+{ id:465, type:"判断", chapter:"判断题题库", q:"第三方存管业务是指经监管部门核准后，本行接受证券公司（包括经监管部门核准和总行机构业务部准入的特定证券经营机构）及其投资者的委托，为投资者开立客户交易结算资金分户账，办理客户交易结算资金的划转，根据证券公司发送的投资者证券清算交收数据对投资者分户账进行记账，并对证券公司客户交易结算资金进行总分核对的业务。", options:["正确","错误"], answer:[0] },
+{ id:466, type:"判断", chapter:"判断题题库", q:"第三方存管/融资融券解约仅可由投资者在证券公司发起。", options:["正确","错误"], answer:[0] },
+{ id:467, type:"判断", chapter:"判断题题库", q:"第三方存管或融资融券业务变更客户签约账号，若投资者原卡丢失、密码遗忘或已销卡，需使用强制变更签约账户交易更换借记卡。", options:["正确","错误"], answer:[0] },
+{ id:468, type:"判断", chapter:"判断题题库", q:"只要接到冻结、扣划通知书，就可以对被协助执行的款项收贷收息。", options:["正确","错误"], answer:[1] },
+{ id:469, type:"判断", chapter:"判断题题库", q:"对公账户已销户的，无需客服经理再进行对账服务解约操作。", options:["正确","错误"], answer:[0] },
+{ id:470, type:"判断", chapter:"判断题题库", q:"签约电子对账（包括：网银、客户端、手机K码、其他电子等），验印方式只能选择“预留印鉴”。", options:["正确","错误"], answer:[1] },
+{ id:471, type:"判断", chapter:"判断题题库", q:"已对账签约客户变更对账要素的，需重新签订《银企对账要素表》或《单位银行结算账户综合服务申请表》。", options:["正确","错误"], answer:[0] },
+{ id:472, type:"判断", chapter:"判断题题库", q:"对公大额存单付息方式分为到期一次还本付息和定期付息到期还本。", options:["正确","错误"], answer:[0] },
+{ id:473, type:"判断", chapter:"判断题题库", q:"对公理财实时赎回业务不可以撤销。", options:["正确","错误"], answer:[0] },
+{ id:474, type:"判断", chapter:"判断题题库", q:"客户结算套餐签约信息需要调整的，应填写结算套餐业务变更申请书（多联）并加盖预留印鉴办理结算套餐变更业务。", options:["正确","错误"], answer:[0] },
+{ id:475, type:"判断", chapter:"判断题题库", q:"对公贷款起息日系统默认为实际放款日期，不允许修改。", options:["正确","错误"], answer:[0] },
+{ id:476, type:"判断", chapter:"判断题题库", q:"只有计息方式为定期结息的未到期贷款才能进行停息/撤销停息处理。", options:["正确","错误"], answer:[0] },
+{ id:477, type:"判断", chapter:"判断题题库", q:"委托贷款借款人到期不能偿还贷款时，应在到期日前提出展期申请并征得委托人同意方可办理委托贷款展期。", options:["正确","错误"], answer:[0] },
+{ id:478, type:"判断", chapter:"判断题题库", q:"有效对账是指在对账日后九个自然月内收到对账回执，且回执上加盖客户有效对账印鉴、账户余额对账结果为相符的对账。", options:["正确","错误"], answer:[1] },
+{ id:479, type:"判断", chapter:"判断题题库", q:"对账结果维护为相符的，必须经对账管理人员批准，相关认定人员应在账单上签章。", options:["正确","错误"], answer:[0] },
+{ id:480, type:"判断", chapter:"判断题题库", q:"电子对账回执无需客户加盖对账印鉴，由系统自动通过证书、安全认证码等进行客户身份", options:["正确","错误"], answer:[0] },
+{ id:481, type:"判断", chapter:"判断题题库", q:"一张IC借记卡（含标准IC借记卡和借电卡）可以绑定多张复合电子现金卡", options:["正确","错误"], answer:[0] },
+{ id:482, type:"判断", chapter:"判断题题库", q:"抹账应仅限于银行内部经办人员在业务办理的操作有误时使用。", options:["正确","错误"], answer:[0] },
+{ id:483, type:"判断", chapter:"判断题题库", q:"银行卡书面挂失及后续处理“20234银行卡书面挂失销户”交易进行销户时，不再校验账户是否签有分行特色合约，取消了磁道锁定、账户真实性检验、存在对账折不能直接挂挂失销", options:["正确","错误"], answer:[0] },
+{ id:484, type:"判断", chapter:"判断题题库", q:"“聪明账”与“双利丰”个人通知存款、银利多、存贷通业务为互斥产品，不能同时签约", options:["正确","错误"], answer:[0] },
+{ id:485, type:"判断", chapter:"判断题题库", q:"对于网点操作不当引起的借记卡状态重置，如不能办理书面挂失后续业务的网点操作了书面挂失业务，客户无需提供额外要件。", options:["正确","错误"], answer:[0] },
+{ id:486, type:"判断", chapter:"判断题题库", q:"个人资金归集业务，主账户签只支持人民币币种。", options:["正确","错误"], answer:[0] },
+{ id:487, type:"判断", chapter:"判断题题库", q:"新开户类型为教育储蓄时，只针对在校小学六年级（含）以上学生开户。", options:["正确","错误"], answer:[1] },
+{ id:488, type:"判断", chapter:"判断题题库", q:"居住在中国境内不满18周岁（16周岁以上能提供劳动收入证明的除外）的中国公民，其中，不满18周岁，包括18周岁生日当天；16周岁以上，从16周岁生日第二天起算。", options:["正确","错误"], answer:[0] },
+{ id:489, type:"判断", chapter:"判断题题库", q:"基金专户赎回业务可以代理办理。", options:["正确","错误"], answer:[1] },
+{ id:490, type:"判断", chapter:"判断题题库", q:"投资者首次在本行购买理财产品前，应在营业网点或电子渠道填写《个人投资者风险承受能力评估问卷》。", options:["正确","错误"], answer:[0] },
+{ id:491, type:"判断", chapter:"判断题题库", q:"个人理财产品销售人员应当至少从事金融工作5年以上。", options:["正确","错误"], answer:[1] },
+{ id:492, type:"判断", chapter:"判断题题库", q:"总行内控合规监督部（全球反洗钱中心）是本行客户洗钱风险评估和等级分类工作的牵头管理部门。", options:["正确","错误"], answer:[0] },
+{ id:493, type:"判断", chapter:"判断题题库", q:"对于非客户类金融市场交易对手和债券发行人，也不能免除评定客户洗钱风险等级。", options:["正确","错误"], answer:[0] },
+{ id:494, type:"判断", chapter:"判断题题库", q:"各级行、各部门收集客户信息存在错误时，应主动及时采取措施予以更正或者删除，切实保障客户的知情权、同意权，请求更正错误信息和删除不必要信息及获得救济等权利。", options:["正确","错误"], answer:[0] },
+{ id:495, type:"判断", chapter:"判断题题库", q:"客服经理开展联网核查过程中，在取得客户授权的情况下，应通过人脸识别或指纹识别技术协助进行人证合一比对。", options:["正确","错误"], answer:[0] },
+{ id:496, type:"判断", chapter:"判断题题库", q:"持有基本存款账户编号的企业申请开立一般存款账户、专用存款账户、临时存款账户，应当提供基本存款账户编号。", options:["正确","错误"], answer:[0] },
+{ id:497, type:"判断", chapter:"判断题题库", q:"总行系统操作员负责维护各级分行对公营销白名单限额。", options:["正确","错误"], answer:[0] },
+{ id:498, type:"判断", chapter:"判断题题库", q:"为本网点开立活期结算账户的对公客户开通信息服务功能，客户可及时得到银行反馈已开通此功能的结算账户或其下级账簿的最新动态。", options:["正确","错误"], answer:[0] },
+{ id:499, type:"判断", chapter:"判断题题库", q:"办理扣划业务时，扣划金额应当具体明确，不能超过账户余额扣划。", options:["正确","错误"], answer:[0] },
+{ id:500, type:"判断", chapter:"判断题题库", q:"协助扣划存款通知书应当明确扣划账户名称、扣划账号、扣划金额等要素。", options:["正确","错误"], answer:[0] },
+{ id:501, type:"判断", chapter:"判断题题库", q:"验资类询证函支持纸质邮寄、企业网银和银行询证函区块链服务平台三个渠道。", options:["正确","错误"], answer:[1] },
+{ id:502, type:"判断", chapter:"判断题题库", q:"银行汇票兑付后有多余款项的，出票行应及时退还汇票申请人。", options:["正确","错误"], answer:[0] },
+{ id:503, type:"判断", chapter:"判断题题库", q:"询证函回函重开操作应由两名询证函生产管理员共同完成。", options:["正确","错误"], answer:[0] },
+{ id:504, type:"判断", chapter:"判断题题库", q:"若被审计单位多份函证存在在多笔收费任务，应每笔单独收费并填写收费信息，不可以并", options:["正确","错误"], answer:[0] },
+{ id:505, type:"判断", chapter:"判断题题库", q:"注册会计师在询证函来函中必须准确填写“函证基准日”，一份来函可以填写多个“函证基准日”。", options:["正确","错误"], answer:[1] },
+{ id:506, type:"判断", chapter:"判断题题库", q:"数字化业务运行中心办理询证函回函，如果被审计单位全部账户均已销户，可以校验销户前预留印鉴并办理回函业务。", options:["正确","错误"], answer:[0] },
+{ id:507, type:"判断", chapter:"判断题题库", q:"对于函证基准日在2018年11月30日（不含）以前的审计类询证函，发函机构应使用《银行询证函（格式一）》。", options:["正确","错误"], answer:[0] },
+{ id:508, type:"判断", chapter:"判断题题库", q:"网点验印、收费和电子函证信息补录是完成集中处理回函的重要环节，网点应自任务下发当日起5个工作日内完成处理，如遇特殊情况与审计单位协商一致的，可适当延长处理时间。", options:["正确","错误"], answer:[0] },
+{ id:509, type:"判断", chapter:"判断题题库", q:"档案调阅须经档案场所所属行运营管理部门副总经理或授权人批准。", options:["正确","错误"], answer:[0] },
+{ id:510, type:"判断", chapter:"判断题题库", q:"远调阅申请通过运营档案系统发起，调阅申请人应提供有效身份证件或工作证和调阅证明，说明调阅部门、原因和调阅内容。", options:["正确","错误"], answer:[0] },
+{ id:511, type:"判断", chapter:"判断题题库", q:"未移交入库的运营档案要放入视频监控范围内的保险柜或档案柜并上锁保管。", options:["正确","错误"], answer:[0] },
+{ id:512, type:"判断", chapter:"判断题题库", q:"根据生效范围不同，一体化平台凭证模板分为通用类凭证模板和特色类凭证模板。", options:["正确","错误"], answer:[0] },
+{ id:513, type:"判断", chapter:"判断题题库", q:"增值税发票信息由业务系统自动传输，在业务发生时系统自动登记发票信息，不得事后通过手工方式新增发票信息", options:["正确","错误"], answer:[0] },
+{ id:514, type:"判断", chapter:"判断题题库", q:"如已开具发票丢失，不得重新开具发票。开票机构应将具体情况逐级上报至开票税号所属行（以下简称税票畅行）财务会计部门及运营管理部门，后续操作按照当地税务机关规定执行", options:["正确","错误"], answer:[0] },
+{ id:515, type:"判断", chapter:"判断题题库", q:"数电票无需进行发票验购，由运营管理部门通过开票系统下载。", options:["正确","错误"], answer:[0] },
+{ id:516, type:"判断", chapter:"判断题题库", q:"客户在某一点签约后，该客户的所有电票业务仅能通过该网点办理，不支持跨网点处理", options:["正确","错误"], answer:[0] },
+{ id:517, type:"判断", chapter:"判断题题库", q:"出票行自收到《银行本（汇）票挂失/解除止付通知书》之日起13日内没有收到人民法院止付通知书，自第13日起，持票人依法提示付款的，经内勤行长或其授权人审批同意后纸质商业汇票为定期付款票据。承兑期限应当与真实的交易期限相匹配，自出票日起，至到期日止，最长不得超过6个月。", options:["正确","错误"], answer:[0] },
+{ id:518, type:"判断", chapter:"判断题题库", q:"纸质商业汇票为定期付款票据。承兑期限应当与真实的交易期限相匹配，自出票日起，至到期日止，最长不得超过6个月。", options:["正确","错误"], answer:[0] },
+{ id:519, type:"判断", chapter:"判断题题库", q:"个人结算业务申请书填写“现金”字样的，客服经理应审查付款人是否为个人，收款方信息是否完整。", options:["正确","错误"], answer:[0] },
+{ id:520, type:"判断", chapter:"判断题题库", q:"汇入行收到的贷记来账业务未核销时间大于3天（含），借记来账业务未核销时间大于5天（含）的，营业终了时系统禁止行所签退，节假日除外。", options:["正确","错误"], answer:[0] },
+{ id:521, type:"判断", chapter:"判断题题库", q:"企业遗失或损毁原开户许可证的，可出具相关说明。", options:["正确","错误"], answer:[0] },
+{ id:522, type:"判断", chapter:"判断题题库", q:"电子营业执照开户及签约，若企业法定代表人亲办并且开立基本户（托管户与异地开户除外），无需中心审核，直接在网点开立，主管现场授权", options:["正确","错误"], answer:[0] },
+{ id:523, type:"判断", chapter:"判断题题库", q:"自动报备是指在账户业务办理后通过RPA自动向人民银行报备系统报备业务信息，根据业务场景不同分为联机报备与异步报备。", options:["正确","错误"], answer:[0] },
+{ id:524, type:"判断", chapter:"判断题题库", q:"除预约调拨、日终上缴的重要空白凭证可延至下一工作日核销外，在途重要空白凭证须当", options:["正确","错误"], answer:[0] },
+{ id:525, type:"判断", chapter:"判断题题库", q:"集中加配钞管理且吞卡模块在上箱体的自助设备，可在自助网点管理行或营业网点保管一套上箱体钥匙，用于网点紧急取吞卡。", options:["正确","错误"], answer:[0] },
+{ id:526, type:"判断", chapter:"判断题题库", q:"用户凭证不见面交接交易校验交出用户的用户状态，用户也必须在线，交接方可成功。", options:["正确","错误"], answer:[1] },
+{ id:527, type:"判断", chapter:"判断题题库", q:"营业机构领用或上缴重要空白凭证时，需经过金库进行实物调拨。", options:["正确","错误"], answer:[0] },
+{ id:528, type:"判断", chapter:"判断题题库", q:"股东、控制人、受益所有人等信息以客户经理端尽调采集为准，客服经理仍需审核。", options:["正确","错误"], answer:[1] },
+{ id:529, type:"判断", chapter:"判断题题库", q:"集中加配钞时，钞箱管理岗不得打开钞箱（废钞箱除外）接触现金实物。", options:["正确","错误"], answer:[0] },
+{ id:530, type:"判断", chapter:"判断题题库", q:"自助(智能)设备加配钞管理系统中大堂保安岗应通过“吞没卡处理”-“吞没卡流程异常终止”交易，收回网点未接收的卡包。", options:["正确","错误"], answer:[1] },
+{ id:531, type:"判断", chapter:"判断题题库", q:"偏远地区离行自助设备报经一级分行运营管理部门负责人批准后，可委托当地政府、部队等第三方开展现场巡检，并建立问题处置机制", options:["正确","错误"], answer:[0] },
+{ id:532, type:"判断", chapter:"判断题题库", q:"自助（智能）设备吞卡和客户自助取吞卡时系统自动登记《柜面重要事项登记簿》。", options:["正确","错误"], answer:[0] },
+{ id:533, type:"判断", chapter:"判断题题库", q:"单位结算卡在自助设备中日累计取款限额为13万元（同一账户开立多张卡，合计为8万元）", options:["正确","错误"], answer:[1] },
+{ id:534, type:"判断", chapter:"判断题题库", q:"票据池成员单位解约前须已办结该合约项下全部业务，且保证金账户无余额。", options:["正确","错误"], answer:[0] }
+];
+
+/* ==================== 逻辑（不用改） ==================== */
+const LS = {
+  get(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch(e){ return d } },
+  set(k, v){ localStorage.setItem(k, JSON.stringify(v)) }
+};
+let stats   = LS.get('stats', {ans:0, ok:0});
+let wrongSet= LS.get('wrong', []);
+let favSet  = LS.get('fav', []);
+let progress= LS.get('progress', {});
+
+const Q = QUESTIONS;
+let cur = { list:[], idx:0, mode:'order' };
+let exam = null;
+
+function saveAll(){
+  LS.set('stats', stats); LS.set('wrong', wrongSet);
+  LS.set('fav', favSet); LS.set('progress', progress);
+}
+
+function go(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('#tab div').forEach(t=>{
+    t.classList.toggle('on', t.dataset.t===id);
+  });
+  if(id==='p-home') refreshHome();
+  if(id==='p-wrong') renderWrong();
+  if(id==='p-fav') renderFav();
+  if(id==='p-stat') renderStat();
+  window.scrollTo(0,0);
+}
+
+function refreshHome(){
+  const total = Q.length;
+  const done = Object.keys(progress).length;
+  const rate = stats.ans? Math.round(stats.ok/stats.ans*100)+'%' : '-';
+  document.getElementById('h-total').textContent = total;
+  document.getElementById('h-done').textContent = done;
+  document.getElementById('h-rate').textContent = rate;
+}
+
+function startMode(mode){
+  cur.list = Q.map(q=>q.id);
+  if(mode==='random') cur.list.sort(()=>Math.random()-.5);
+  cur.idx = 0; cur.mode = mode;
+  go('p-quiz'); renderQ();
+}
+function startWrong(){
+  if(!wrongSet.length){ alert('还没有错题'); return; }
+  cur.list = wrongSet.slice(); cur.idx=0; cur.mode='wrong';
+  go('p-quiz'); renderQ();
+}
+function startFav(){
+  if(!favSet.length){ alert('还没有收藏'); return; }
+  cur.list = favSet.slice(); cur.idx=0; cur.mode='fav';
+  go('p-quiz'); renderQ();
+}
+
+function curQ(){ return Q.find(q=>q.id===cur.list[cur.idx]); }
+
+function renderQ(){
+  const q = curQ(); if(!q) return;
+  document.getElementById('q-prog').textContent = `第 ${cur.idx+1} / ${cur.list.length} 题`;
+  document.getElementById('q-meta').textContent = `${q.type} · ${q.chapter}`;
+  document.getElementById('q-text').textContent = q.q;
+  const box = document.getElementById('q-opts'); box.innerHTML='';
+  const p = progress[q.id];
+  q.options.forEach((op,i)=>{
+    const d=document.createElement('div'); d.className='opt';
+    const lab = String.fromCharCode(65+i);
+    d.innerHTML=`<span class="lab">${lab}</span><span>${op}</span>`;
+    if(p){
+      if(q.answer.includes(i)) d.classList.add('right');
+      if(p.sel===i && !q.answer.includes(i)) d.classList.add('wrong');
+    }else{
+      d.onclick=()=>answer(i);
+    }
+    box.appendChild(d);
+  });
+  const res=document.getElementById('q-res'); res.innerHTML='';
+  if(p){
+    const correct = q.answer.map(i=>String.fromCharCode(65+i)).join('、');
+    res.innerHTML = `<div class="result ${p.correct?'ok':'no'}">${p.correct?'✅ 回答正确':'❌ 回答错误'}　正确答案：${correct}</div>`;
+  }
+  document.getElementById('q-fav').textContent = favSet.includes(q.id)?'★ 已收藏':'☆ 收藏本题';
+}
+
+function answer(i){
+  const q = curQ(); if(progress[q.id]) return;
+  const correct = q.answer.includes(i);
+  progress[q.id] = {sel:i, correct};
+  stats.ans++; if(correct) stats.ok++;
+  if(!correct){ if(!wrongSet.includes(q.id)) wrongSet.push(q.id); }
+  else { wrongSet = wrongSet.filter(x=>x!==q.id); }
+  saveAll(); renderQ();
+}
+
+function nextQ(){ if(cur.idx<cur.list.length-1){cur.idx++;renderQ();} else alert('已经是最后一题'); }
+function prevQ(){ if(cur.idx>0){cur.idx--;renderQ();} }
+function toggleFav(){
+  const q=curQ();
+  if(favSet.includes(q.id)) favSet=favSet.filter(x=>x!==q.id);
+  else favSet.push(q.id);
+  saveAll(); renderQ();
+}
+
+function renderWrong(){
+  const box=document.getElementById('w-list');
+  if(!wrongSet.length){ box.innerHTML='<div class="empty">还没有错题，加油！</div>'; return; }
+  box.innerHTML = wrongSet.map(id=>{
+    const q=Q.find(x=>x.id===id); if(!q) return '';
+    return `<div class="list-item">${q.q}<div class="small">正确答案：${q.answer.map(i=>String.fromCharCode(65+i)).join('、')}</div></div>`;
+  }).join('');
+}
+function renderFav(){
+  const box=document.getElementById('f-list');
+  if(!favSet.length){ box.innerHTML='<div class="empty">还没有收藏</div>'; return; }
+  box.innerHTML = favSet.map(id=>{
+    const q=Q.find(x=>x.id===id); if(!q) return '';
+    return `<div class="list-item">${q.q}</div>`;
+  }).join('');
+}
+
+function startExam(){
+  let n = parseInt(document.getElementById('ex-count').value)||20;
+  n = Math.min(n, Q.length);
+  let t = parseInt(document.getElementById('ex-time').value)||0;
+  const pool = Q.map(q=>q.id).sort(()=>Math.random()-.5).slice(0,n);
+  exam = { ids:pool, idx:0, ans:{}, limit:t*60, used:0, timer:null };
+  go('p-examrun'); eRender();
+  if(t>0){
+    exam.timer=setInterval(()=>{
+      exam.used++;
+      const left=exam.limit-exam.used;
+      document.getElementById('e-prog').textContent =
+        `第 ${exam.idx+1}/${exam.ids.length} 题　⏱ 剩余 ${Math.floor(left/60)}分${left%60}秒`;
+      if(left<=0){ clearInterval(exam.timer); submitExam(); }
+    },1000);
+  }
+}
+function eCur(){ return Q.find(q=>q.id===exam.ids[exam.idx]); }
+function eRender(){
+  const q=eCur(); if(!q) return;
+  if(!exam.timer || exam.limit===0)
+    document.getElementById('e-prog').textContent=`第 ${exam.idx+1}/${exam.ids.length} 题`;
+  document.getElementById('e-text').textContent=q.q;
+  const box=document.getElementById('e-opts'); box.innerHTML='';
+  q.options.forEach((op,i)=>{
+    const d=document.createElement('div'); d.className='opt';
+    d.innerHTML=`<span class="lab">${String.fromCharCode(65+i)}</span><span>${op}</span>`;
+    if(exam.ans[q.id]===i) d.classList.add('sel');
+    d.onclick=()=>{ exam.ans[q.id]=i; eRender(); };
+    box.appendChild(d);
+  });
+}
+function eNext(){ if(exam.idx<exam.ids.length-1){exam.idx++;eRender();} }
+function ePrev(){ if(exam.idx>0){exam.idx--;eRender();} }
+
+function submitExam(){
+  if(exam.timer) clearInterval(exam.timer);
+  let ok=0; const rows=[];
+  exam.ids.forEach((id,i)=>{
+    const q=Q.find(x=>x.id===id);
+    const sel=exam.ans[id];
+    const correct = sel!==undefined && q.answer.includes(sel);
+    if(correct) ok++;
+    rows.push({i:i+1, q, sel, correct});
+    if(sel!==undefined){
+      stats.ans++;
+      if(correct){ stats.ok++; wrongSet=wrongSet.filter(x=>x!==id); }
+      else { if(!wrongSet.includes(id)) wrongSet.push(id); }
+    }
+  });
+  saveAll();
+  const score=Math.round(ok/exam.ids.length*100);
+  document.getElementById('r-score').textContent=score+' 分';
+  document.getElementById('r-cnt').textContent=ok+' / '+exam.ids.length;
+  document.getElementById('r-time').textContent=Math.floor(exam.used/60)+'分'+exam.used%60+'秒';
+  document.getElementById('r-list').innerHTML = rows.map(r=>{
+    const correct=r.q.answer.map(x=>String.fromCharCode(65+x)).join('、');
+    const your = r.sel===undefined?'未作答':String.fromCharCode(65+r.sel);
+    return `<div class="list-item">
+      <div>${r.correct?'✅':'❌'} ${r.i}. ${r.q.q}</div>
+      <div class="small">你的答案：${your}　正确答案：${correct}</div>
+    </div>`;
+  }).join('');
+  exam=null;
+  go('p-examres');
+}
+
+function renderStat(){
+  document.getElementById('s-ans').textContent=stats.ans;
+  document.getElementById('s-ok').textContent=stats.ok;
+  document.getElementById('s-rate').textContent=stats.ans?Math.round(stats.ok/stats.ans*100)+'%':'-';
+  document.getElementById('s-wrong').textContent=wrongSet.length;
+  document.getElementById('s-fav').textContent=favSet.length;
+}
+function exportData(){
+  const data={stats,wrong:wrongSet,fav:favSet,progress,time:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='刷题备份_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function importData(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      stats=d.stats||stats; wrongSet=d.wrong||[]; favSet=d.fav||[]; progress=d.progress||{};
+      saveAll(); renderStat(); alert('导入成功！');
+    }catch(err){ alert('文件格式不对'); }
+  };
+  r.readAsText(f);
+}
+function clearAll(){
+  if(!confirm('确定清空所有答题记录、错题、收藏？')) return;
+  stats={ans:0,ok:0}; wrongSet=[]; favSet=[]; progress={};
+  saveAll(); renderStat(); alert('已清空');
+}
+
+refreshHome();
+</script>
+</body>
+</html>
